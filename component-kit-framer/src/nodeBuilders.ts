@@ -1,284 +1,203 @@
-import { framer } from "@framer/plugin"
-import * as opentype from "opentype.js"
+import { framer, isCodeFileComponentExport } from "@framer/plugin"
 
-const COLOR = {
-  ink: "#17171A",
-  inkMuted: "#73737A",
-  white: "#FFFFFF",
-  surface: "#F7F7F8",
-  border: "#E6E6E8",
-  accent: "#4A5AFF",
-  accentSoft: "#ECEEFF",
-  banner: "#17171A",
-  bannerMuted: "#BEBEC3",
+interface ComponentDef {
+  fileName: string
+  tsx: string
 }
 
-type Weight = "regular" | "semibold" | "bold"
+const HERO_TSX = `export default function Hero() {
+  return (
+    <div style={{ width: 640, padding: "80px 60px", background: "#fff", display: "flex", flexDirection: "column", alignItems: "center", gap: 20, fontFamily: "Inter, sans-serif" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#4A5AFF", letterSpacing: 1 }}>NEW · V2.0</div>
+      <div style={{ fontSize: 40, fontWeight: 700, color: "#17171A", textAlign: "center", lineHeight: 1.1 }}>
+        Design faster,<br />ship with confidence
+      </div>
+      <div style={{ fontSize: 16, color: "#73737A", textAlign: "center", maxWidth: 440 }}>
+        A component library built for teams who care about speed and craft in equal measure.
+      </div>
+      <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ padding: "10px 20px", borderRadius: 8, background: "#4A5AFF", color: "#fff", fontWeight: 600, fontSize: 14 }}>Get started</div>
+        <div style={{ padding: "10px 20px", borderRadius: 8, border: "1px solid #E6E6E8", color: "#17171A", fontWeight: 600, fontSize: 14 }}>View docs</div>
+      </div>
+    </div>
+  )
+}
+`
 
-const FONT_URLS: Record<Weight, string> = {
-  regular: "/fonts/Inter-Regular.ttf",
-  semibold: "/fonts/Inter-SemiBold.ttf",
-  bold: "/fonts/Inter-Bold.ttf",
+const NAVBAR_TSX = `export default function Navbar() {
+  const linkStyle = { fontSize: 14, fontWeight: 600, color: "#73737A" }
+  return (
+    <div style={{ width: 720, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 32px", background: "#fff", borderBottom: "1px solid #E6E6E8", fontFamily: "Inter, sans-serif" }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: "#17171A" }}>Acme</div>
+      <div style={{ display: "flex", gap: 28 }}>
+        <div style={linkStyle}>Product</div>
+        <div style={linkStyle}>Pricing</div>
+        <div style={linkStyle}>Docs</div>
+        <div style={linkStyle}>Blog</div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "#17171A" }}>Log in</div>
+        <div style={{ padding: "10px 20px", borderRadius: 8, background: "#4A5AFF", color: "#fff", fontWeight: 600, fontSize: 14 }}>Sign up</div>
+      </div>
+    </div>
+  )
+}
+`
+
+const PRICING_CARD_TSX = `export default function PricingCard() {
+  const features = ["Unlimited projects", "Priority support", "Team collaboration", "Advanced analytics"]
+  return (
+    <div style={{ width: 280, padding: 28, borderRadius: 16, border: "1px solid #E6E6E8", background: "#fff", display: "flex", flexDirection: "column", gap: 20, fontFamily: "Inter, sans-serif" }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: "#4A5AFF" }}>Pro</div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+        <div style={{ fontSize: 36, fontWeight: 700, color: "#17171A" }}>$24</div>
+        <div style={{ fontSize: 14, color: "#73737A" }}>/mo</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {features.map((f) => (
+          <div key={f} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ color: "#4A5AFF", fontWeight: 700, fontSize: 13 }}>✓</div>
+            <div style={{ fontSize: 13, color: "#17171A" }}>{f}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ textAlign: "center", padding: "10px 0", borderRadius: 8, background: "#4A5AFF", color: "#fff", fontWeight: 600, fontSize: 13 }}>Choose plan</div>
+    </div>
+  )
+}
+`
+
+const TESTIMONIAL_TSX = `export default function Testimonial() {
+  return (
+    <div style={{ width: 420, padding: 32, borderRadius: 16, background: "#F7F7F8", display: "flex", flexDirection: "column", gap: 20, fontFamily: "Inter, sans-serif" }}>
+      <div style={{ fontSize: 18, fontWeight: 500, color: "#17171A", lineHeight: 1.4 }}>
+        "This tool cut our design-to-dev handoff time in half. It's become part of how we ship every week."
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#ECEEFF" }} />
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#17171A" }}>Jordan Lee</div>
+          <div style={{ fontSize: 12, color: "#73737A" }}>Design Lead, Northwind</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+`
+
+const FEATURE_CARD_TSX = `export default function FeatureCard() {
+  return (
+    <div style={{ width: 240, padding: 24, borderRadius: 14, border: "1px solid #E6E6E8", background: "#fff", display: "flex", flexDirection: "column", gap: 14, fontFamily: "Inter, sans-serif" }}>
+      <div style={{ width: 40, height: 40, borderRadius: 10, background: "#ECEEFF", display: "flex", alignItems: "center", justifyContent: "center", color: "#4A5AFF", fontWeight: 700, fontSize: 16 }}>★</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#17171A" }}>Real-time sync</div>
+      <div style={{ fontSize: 13, color: "#73737A", lineHeight: 1.4 }}>Changes reflect instantly across every teammate's canvas, no refresh needed.</div>
+    </div>
+  )
+}
+`
+
+const CTA_BANNER_TSX = `export default function CtaBanner() {
+  return (
+    <div style={{ width: 680, padding: "40px 48px", borderRadius: 20, background: "#17171A", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: "Inter, sans-serif" }}>
+      <div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: "#fff" }}>Ready to get started?</div>
+        <div style={{ fontSize: 14, color: "#BEBEC3", marginTop: 6 }}>Join thousands of teams already shipping faster.</div>
+      </div>
+      <div style={{ padding: "12px 24px", borderRadius: 8, background: "#fff", color: "#17171A", fontWeight: 600, fontSize: 14, whiteSpace: "nowrap" }}>Start free trial</div>
+    </div>
+  )
+}
+`
+
+const FOOTER_TSX = `export default function Footer() {
+  const groups = [
+    { title: "Product", links: ["Overview", "Pricing", "Changelog"] },
+    { title: "Company", links: ["About", "Careers", "Press"] },
+    { title: "Resources", links: ["Docs", "Guides", "Support"] },
+  ]
+  return (
+    <div style={{ width: 720, padding: "40px 48px 24px", background: "#fff", display: "flex", flexDirection: "column", gap: 32, fontFamily: "Inter, sans-serif" }}>
+      <div style={{ display: "flex", gap: 60 }}>
+        {groups.map((g) => (
+          <div key={g.title} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#17171A" }}>{g.title}</div>
+            {g.links.map((l) => (
+              <div key={l} style={{ fontSize: 13, color: "#73737A" }}>{l}</div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div style={{ borderTop: "1px solid #E6E6E8" }} />
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#73737A" }}>
+        <div>© 2026 Acme, Inc.</div>
+        <div>Privacy · Terms</div>
+      </div>
+    </div>
+  )
+}
+`
+
+const STATS_ROW_TSX = `export default function StatsRow() {
+  const stats = [
+    { num: "120k+", label: "Active users" },
+    { num: "4.9/5", label: "Average rating" },
+    { num: "99.9%", label: "Uptime" },
+  ]
+  return (
+    <div style={{ width: 400, display: "flex", padding: "24px 0", fontFamily: "Inter, sans-serif" }}>
+      {stats.map((s) => (
+        <div key={s.label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          <div style={{ fontSize: 28, fontWeight: 700, color: "#17171A" }}>{s.num}</div>
+          <div style={{ fontSize: 13, color: "#73737A" }}>{s.label}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+`
+
+const COMPONENTS: Record<string, ComponentDef> = {
+  hero: { fileName: "ComponentKit-Hero.tsx", tsx: HERO_TSX },
+  navbar: { fileName: "ComponentKit-Navbar.tsx", tsx: NAVBAR_TSX },
+  "pricing-card": { fileName: "ComponentKit-PricingCard.tsx", tsx: PRICING_CARD_TSX },
+  testimonial: { fileName: "ComponentKit-Testimonial.tsx", tsx: TESTIMONIAL_TSX },
+  "feature-card": { fileName: "ComponentKit-FeatureCard.tsx", tsx: FEATURE_CARD_TSX },
+  "cta-banner": { fileName: "ComponentKit-CtaBanner.tsx", tsx: CTA_BANNER_TSX },
+  footer: { fileName: "ComponentKit-Footer.tsx", tsx: FOOTER_TSX },
+  "stats-row": { fileName: "ComponentKit-StatsRow.tsx", tsx: STATS_ROW_TSX },
 }
 
-const fontCache = new Map<Weight, opentype.Font>()
+const insertUrlCache = new Map<string, string>()
 
-async function loadFont(weight: Weight): Promise<opentype.Font> {
-  const cached = fontCache.get(weight)
+async function getInsertUrl(def: ComponentDef): Promise<string> {
+  const cached = insertUrlCache.get(def.fileName)
   if (cached) return cached
-  const res = await fetch(FONT_URLS[weight])
-  const buffer = await res.arrayBuffer()
-  const font = opentype.parse(buffer)
-  fontCache.set(weight, font)
-  return font
-}
 
-async function loadAllFonts(): Promise<void> {
-  await Promise.all((Object.keys(FONT_URLS) as Weight[]).map(loadFont))
-}
-
-/**
- * Renders a line of text as a filled SVG <path>, since Framer's addSVG doesn't support <text>.
- * Builds glyph-by-glyph (not font.getPath on the whole string) because Inter's GSUB tables use a
- * substitution format opentype.js can't parse, which throws on font.stringToGlyphs / font.getPath.
- * This loses ligatures/kerning, which is fine for UI copy.
- */
-function measureText(font: opentype.Font, content: string, size: number): number {
-  const scale = size / font.unitsPerEm
-  let width = 0
-  for (const ch of content) {
-    width += (font.charToGlyph(ch).advanceWidth ?? 0) * scale
-  }
-  return width
-}
-
-function glyphsToPath(font: opentype.Font, content: string, x: number, y: number, size: number): string {
-  const scale = size / font.unitsPerEm
-  let cursor = x
-  const parts: string[] = []
-  for (const ch of content) {
-    const glyph = font.charToGlyph(ch)
-    // precision 0: Framer's addSVG caps payloads at 10KB, and glyph path data is the dominant
-    // cost — integer coordinates cut this substantially with no visible quality loss at UI sizes.
-    parts.push(glyph.getPath(cursor, y, size).toPathData(0))
-    cursor += (glyph.advanceWidth ?? 0) * scale
-  }
-  return parts.join(" ")
-}
-
-/** Real vector text. Expensive (real glyph outlines) — use only for short labels, not paragraphs. */
-async function text(
-  x: number,
-  y: number,
-  content: string,
-  opts: { size: number; weight?: Weight; color?: string; anchor?: "start" | "middle" | "end" }
-): Promise<string> {
-  const { size, weight = "regular", color = COLOR.ink, anchor = "start" } = opts
-  const font = await loadFont(weight)
-  const advance = measureText(font, content, size)
-  const drawX = anchor === "middle" ? x - advance / 2 : anchor === "end" ? x - advance : x
-  const d = glyphsToPath(font, content, drawX, y, size)
-  return `<path d="${d}" fill="${color}"/>`
-}
-
-function rect(x: number, y: number, w: number, h: number, opts: { fill?: string; rx?: number; stroke?: string } = {}) {
-  const { fill = "none", rx = 0, stroke } = opts
-  const strokeAttr = stroke ? ` stroke="${stroke}" stroke-width="1"` : ""
-  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}"${strokeAttr}/>`
-}
-
-/**
- * A rounded bar standing in for a line of text, sized proportionally to `chars`.
- * Used for paragraphs/lists/long copy, where real vector glyphs would blow the 10KB SVG budget.
- */
-function bar(x: number, y: number, chars: number, opts: { size: number; color?: string; charWidth?: number; centered?: boolean; totalWidth?: number }) {
-  const { size, color = COLOR.ink, charWidth = 0.55, centered = false, totalWidth } = opts
-  const w = Math.max(chars * size * charWidth, size)
-  const h = Math.max(size * 0.62, 3)
-  const rx = h / 2
-  const drawX = centered && totalWidth ? x + (totalWidth - w) / 2 : x
-  return rect(drawX, y, w, h, { fill: color, rx })
-}
-
-function svgWrap(width: number, height: number, body: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${body}</svg>`
-}
-
-async function button(x: number, y: number, label: string, filled: boolean): Promise<{ svg: string; width: number }> {
-  const font = await loadFont("semibold")
-  const size = 14
-  const textW = measureText(font, label, size)
-  const w = textW + 44
-  const h = 38
-  const bg = filled ? COLOR.accent : COLOR.white
-  const stroke = filled ? undefined : COLOR.border
-  const labelColor = filled ? COLOR.white : COLOR.ink
-  let body = rect(x, y, w, h, { fill: bg, rx: 8, stroke })
-  body += await text(x + w / 2, y + h / 2 + size * 0.35, label, { size, weight: "semibold", color: labelColor, anchor: "middle" })
-  return { svg: body, width: w }
-}
-
-// ---- Component templates ----
-
-async function buildHero(): Promise<string> {
-  const w = 640
-  const h = 340
-  let body = rect(0, 0, w, h, { fill: COLOR.white })
-  body += await text(w / 2, 60, "NEW · V2.0", { size: 12, weight: "bold", color: COLOR.accent, anchor: "middle" })
-  body += bar(0, 86, 22, { size: 34, color: COLOR.ink, centered: true, totalWidth: w })
-  body += bar(0, 130, 26, { size: 34, color: COLOR.ink, centered: true, totalWidth: w })
-  body += bar(0, 178, 46, { size: 15, color: COLOR.inkMuted, centered: true, totalWidth: w })
-  body += bar(0, 200, 34, { size: 15, color: COLOR.inkMuted, centered: true, totalWidth: w })
-
-  const btn1 = await button(w / 2 - 155, 244, "Get started", true)
-  const btn2 = await button(w / 2 - 155 + btn1.width + 12, 244, "View docs", false)
-  body += btn1.svg + btn2.svg
-
-  return svgWrap(w, h, body)
-}
-
-async function buildNavbar(): Promise<string> {
-  const w = 720
-  const h = 64
-  let body = rect(0, 0, w, h, { fill: COLOR.white, stroke: COLOR.border })
-  body += await text(32, 38, "Acme", { size: 18, weight: "bold", color: COLOR.ink })
-
-  let lx = 300
-  for (const chars of [7, 7, 4, 4]) {
-    body += bar(lx, 32, chars, { size: 14, color: COLOR.inkMuted })
-    lx += chars * 14 * 0.55 + 32
+  // Reuse the code file across sessions/reloads instead of creating a duplicate every time.
+  let codeFile = await framer.getCodeFile(def.fileName)
+  if (!codeFile) {
+    codeFile = await framer.createCodeFile(def.fileName, def.tsx)
   }
 
-  body += await text(w - 168, 38, "Log in", { size: 14, weight: "semibold", color: COLOR.ink })
-  const btn = await button(w - 108, 13, "Sign up", true)
-  body += btn.svg
-  return svgWrap(w, h, body)
-}
-
-async function buildPricingCard(): Promise<string> {
-  const w = 280
-  const h = 340
-  let body = rect(0, 0, w, h, { fill: COLOR.white, rx: 16, stroke: COLOR.border })
-  body += await text(28, 52, "Pro", { size: 14, weight: "bold", color: COLOR.accent })
-  body += await text(28, 100, "$24", { size: 36, weight: "bold", color: COLOR.ink })
-  const priceFont = await loadFont("bold")
-  const priceW = measureText(priceFont, "$24", 36)
-  body += await text(28 + priceW + 6, 100, "/mo", { size: 14, weight: "regular", color: COLOR.inkMuted })
-
-  const features = [19, 15, 18, 17]
-  let fy = 132
-  for (const chars of features) {
-    body += `<circle cx="34" cy="${fy + 6}" r="7" fill="${COLOR.accentSoft}"/>`
-    body += bar(46, fy, chars, { size: 13, color: COLOR.ink })
-    fy += 26
+  const componentExport = codeFile.exports.find(isCodeFileComponentExport)
+  if (!componentExport) {
+    throw new Error(`"${def.fileName}" has no component export — this shouldn't happen.`)
   }
 
-  body += rect(28, h - 62, w - 56, 38, { fill: COLOR.accent, rx: 8 })
-  body += await text(w / 2, h - 62 + 24, "Choose plan", { size: 13, weight: "semibold", color: COLOR.white, anchor: "middle" })
-  return svgWrap(w, h, body)
+  insertUrlCache.set(def.fileName, componentExport.insertURL)
+  return componentExport.insertURL
 }
 
-async function buildTestimonial(): Promise<string> {
-  const w = 420
-  const h = 200
-  let body = rect(0, 0, w, h, { fill: COLOR.surface, rx: 16 })
-  body += bar(32, 40, 45, { size: 17, color: COLOR.ink })
-  body += bar(32, 66, 42, { size: 17, color: COLOR.ink })
-  body += `<circle cx="50" cy="140" r="18" fill="${COLOR.accentSoft}"/>`
-  body += await text(80, 134, "Jordan Lee", { size: 13, weight: "bold", color: COLOR.ink })
-  body += await text(80, 152, "Design Lead, Northwind", { size: 12, weight: "regular", color: COLOR.inkMuted })
-  return svgWrap(w, h, body)
-}
+export async function insertComponent(id: string, _name: string) {
+  const def = COMPONENTS[id]
+  if (!def) return
 
-async function buildFeatureCard(): Promise<string> {
-  const w = 240
-  const h = 190
-  let body = rect(0, 0, w, h, { fill: COLOR.white, rx: 14, stroke: COLOR.border })
-  body += rect(24, 24, 40, 40, { fill: COLOR.accentSoft, rx: 10 })
-  body += `<circle cx="44" cy="44" r="6" fill="${COLOR.accent}"/>`
-  body += await text(24, 100, "Real-time sync", { size: 15, weight: "bold", color: COLOR.ink })
-  body += bar(24, 116, 36, { size: 13, color: COLOR.inkMuted })
-  body += bar(24, 134, 33, { size: 13, color: COLOR.inkMuted })
-  return svgWrap(w, h, body)
-}
-
-async function buildCtaBanner(): Promise<string> {
-  const w = 680
-  const h = 140
-  let body = rect(0, 0, w, h, { fill: COLOR.banner, rx: 20 })
-  body += await text(48, 60, "Ready to get started?", { size: 22, weight: "bold", color: COLOR.white })
-  body += bar(48, 78, 48, { size: 14, color: COLOR.bannerMuted })
-  body += rect(w - 208, 50, 160, 42, { fill: COLOR.white, rx: 8 })
-  body += bar(w - 208, 65, 15, { size: 14, color: COLOR.ink, centered: true, totalWidth: 160 })
-  return svgWrap(w, h, body)
-}
-
-async function buildFooter(): Promise<string> {
-  const w = 720
-  const h = 200
-  let body = rect(0, 0, w, h, { fill: COLOR.white })
-  const groups: [string, string[]][] = [
-    ["Product", ["Overview", "Pricing", "Changelog"]],
-    ["Company", ["About", "Careers", "Press"]],
-    ["Resources", ["Docs", "Guides", "Support"]],
-  ]
-  let gx = 48
-  for (const [title, links] of groups) {
-    body += await text(gx, 50, title, { size: 13, weight: "bold", color: COLOR.ink })
-    let ly = 72
-    for (const l of links) {
-      body += bar(gx, ly, l.length, { size: 13, color: COLOR.inkMuted })
-      ly += 22
-    }
-    gx += 160
-  }
-  body += rect(48, 150, w - 96, 1, { fill: COLOR.border })
-  body += bar(48, 172, 16, { size: 12, color: COLOR.inkMuted })
-  body += bar(w - 48 - 90, 172, 12, { size: 12, color: COLOR.inkMuted })
-  return svgWrap(w, h, body)
-}
-
-async function buildStatsRow(): Promise<string> {
-  const w = 400
-  const h = 100
-  let body = ""
-  const stats: [string, string][] = [
-    ["120k+", "Active users"],
-    ["4.9/5", "Average rating"],
-    ["99.9%", "Uptime"],
-  ]
-  const colW = w / stats.length
-  for (let i = 0; i < stats.length; i++) {
-    const [num, label] = stats[i]
-    const cx = colW * i
-    body += await text(colW * i + colW / 2, 42, num, { size: 26, weight: "bold", color: COLOR.ink, anchor: "middle" })
-    body += bar(cx, 56, label.length, { size: 13, color: COLOR.inkMuted, centered: true, totalWidth: colW })
-  }
-  return svgWrap(w, h, body)
-}
-
-const BUILDERS: Record<string, () => Promise<string>> = {
-  hero: buildHero,
-  navbar: buildNavbar,
-  "pricing-card": buildPricingCard,
-  testimonial: buildTestimonial,
-  "feature-card": buildFeatureCard,
-  "cta-banner": buildCtaBanner,
-  footer: buildFooter,
-  "stats-row": buildStatsRow,
-}
-
-export async function insertComponent(id: string, name: string) {
-  const builder = BUILDERS[id]
-  if (!builder) return
-
-  if (!framer.isAllowedTo("addSVG")) {
+  if (!framer.isAllowedTo("createCodeFile", "addComponentInstance")) {
     throw new Error(
-      "This Framer workspace/plan doesn't allow plugins to insert SVGs (addSVG is blocked). This isn't a bug in the plugin — it's a permission gate on the workspace."
+      "This Framer workspace/plan doesn't allow plugins to create code components. This isn't a bug in the plugin — it's a permission gate on the workspace."
     )
   }
 
-  await loadAllFonts()
-  const svg = await builder()
-  await framer.addSVG({ svg, name })
+  const url = await getInsertUrl(def)
+  await framer.addComponentInstance({ url })
 }
