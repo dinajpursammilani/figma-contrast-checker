@@ -192,15 +192,17 @@ export async function insertComponent(id: string, _name: string) {
   const def = COMPONENTS[id]
   if (!def) return
 
-  if (!framer.isAllowedTo("createCodeFile", "addDetachedComponentLayers")) {
+  if (!framer.isAllowedTo("createCodeFile", "addComponentInstance")) {
     throw new Error(
       "This Framer workspace/plan doesn't allow plugins to create code components. This isn't a bug in the plugin — it's a permission gate on the workspace."
     )
   }
 
   const url = await getInsertUrl(def)
-  // Detached (not addComponentInstance): decomposes into real, independent FrameNode/TextNode
-  // layers on the canvas — double-click-to-edit-text and drag-to-resize work, matching Figma.
-  // A linked instance would only expose props via a side panel, not free-form canvas editing.
-  await framer.addDetachedComponentLayers({ url, layout: true })
+  // Inserted as a linked instance, not detached: addDetachedComponentLayers only works on
+  // pre-published, Framer-built module URLs (confirmed against Framer's own example plugin) —
+  // a CodeFile we just created at runtime isn't structurally analyzable yet, so detaching it
+  // fails with "not a visual component". To free-form edit an inserted component, use Framer's
+  // own canvas "Detach" action (right-click the instance) — that's the supported path for this.
+  await framer.addComponentInstance({ url })
 }
