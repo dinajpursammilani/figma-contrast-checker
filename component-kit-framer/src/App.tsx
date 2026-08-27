@@ -139,7 +139,8 @@ export default function App() {
       await insertComponent(id, name)
       showToast(`Inserted "${name}"`)
     } catch (err) {
-      showToast("Couldn't insert — try again")
+      const message = err instanceof Error ? err.message : "Couldn't insert — try again"
+      showToast(message)
       console.error(err)
     } finally {
       setBusyId(null)
@@ -150,7 +151,8 @@ export default function App() {
   function showToast(text: string) {
     setToast(text)
     clearTimeout(toastTimer)
-    toastTimer = setTimeout(() => setToast(null), 1400)
+    const duration = text.length > 40 ? 6000 : 1400
+    toastTimer = setTimeout(() => setToast(null), duration)
   }
 
   return (

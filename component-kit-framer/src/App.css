@@ -86,8 +86,10 @@ body {
 .empty { grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-size: 12px; margin-top: 50px; }
 
 .toast {
-  position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%) translateY(8px);
-  background: var(--text); color: var(--bg); font-size: 12px; font-weight: 600;
-  padding: 8px 14px; border-radius: 8px; opacity: 0; pointer-events: none; transition: all 0.15s ease;
+  position: fixed; bottom: 14px; left: 14px; right: 14px;
+  transform: translateY(8px);
+  background: var(--text); color: var(--bg); font-size: 12px; font-weight: 600; line-height: 1.5;
+  padding: 10px 14px; border-radius: 8px; opacity: 0; pointer-events: none; transition: all 0.15s ease;
+  max-height: 140px; overflow-y: auto;
 }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.show { opacity: 1; transform: translateY(0); }

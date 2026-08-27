@@ -256,6 +256,13 @@ const BUILDERS: Record<string, () => Promise<string>> = {
 export async function insertComponent(id: string, name: string) {
   const builder = BUILDERS[id]
   if (!builder) return
+
+  if (!framer.isAllowedTo("addSVG")) {
+    throw new Error(
+      "This Framer workspace/plan doesn't allow plugins to insert SVGs (addSVG is blocked). This isn't a bug in the plugin — it's a permission gate on the workspace."
+    )
+  }
+
   await loadAllFonts()
   const svg = await builder()
   await framer.addSVG({ svg, name })
