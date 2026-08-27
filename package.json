@@ -1,0 +1,17 @@
+{
+  "name": "figma-contrast-checker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:code && npm run build:ui",
+    "build:code": "esbuild src/code.ts --bundle --outfile=dist/code.js --target=es2017",
+    "build:ui": "node scripts/build-ui.js",
+    "watch": "npm run build -- && chokidar 'src/**/*' -c 'npm run build'"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.90.0",
+    "chokidar-cli": "^3.0.0",
+    "esbuild": "^0.23.0",
+    "typescript": "^5.5.0"
+  }
+}
