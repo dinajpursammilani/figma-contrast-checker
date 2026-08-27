@@ -141,45 +141,59 @@ function evaluatePair() {
   });
 }
 
-// ---- Scan mode (audit every text layer in the selection/page) ----
+// ---- Scan mode (audit every text layer in the selection/page/file) ----
 
-function runScan() {
-  const roots = figma.currentPage.selection.length > 0 ? figma.currentPage.selection : figma.currentPage.children;
+type ScanScope = "selection" | "page" | "file";
 
-  const textNodes: TextNode[] = [];
-  for (const root of roots) collectTextNodes(root, textNodes);
+function buildItem(node: TextNode) {
+  const fg = getSolidFill(node) || { r: 0, g: 0, b: 0 };
+  const bg = findBackgroundColor(node) || { r: 1, g: 1, b: 1 };
+  const ratio = contrastRatio(fg, bg);
+  const fontSize = typeof node.fontSize === "number" ? node.fontSize : 16;
+  const isLarge = fontSize >= 24;
+  const passes = ratio >= (isLarge ? 3 : 4.5);
 
-  if (textNodes.length === 0) {
-    figma.ui.postMessage({ type: "scan-result", items: [], scope: figma.currentPage.selection.length > 0 ? "selection" : "page" });
-    return;
+  return {
+    id: node.id,
+    name: node.name,
+    pageName: (node as SceneNode).parent ? findPageName(node) : "",
+    ratio: Math.round(ratio * 100) / 100,
+    hexFg: toHex(fg),
+    hexBg: toHex(bg),
+    isLarge,
+    passes,
+  };
+}
+
+function findPageName(node: BaseNode): string {
+  let current: BaseNode | null = node;
+  while (current) {
+    if (current.type === "PAGE") return current.name;
+    current = current.parent;
+  }
+  return "";
+}
+
+async function runScan(scope: ScanScope) {
+  figma.ui.postMessage({ type: "scan-progress" });
+
+  let textNodes: TextNode[] = [];
+
+  if (scope === "selection" && figma.currentPage.selection.length > 0) {
+    for (const root of figma.currentPage.selection) collectTextNodes(root, textNodes);
+  } else if (scope === "file") {
+    await figma.loadAllPagesAsync();
+    for (const page of figma.root.children) {
+      for (const root of page.children) collectTextNodes(root, textNodes);
+    }
+  } else {
+    for (const root of figma.currentPage.children) collectTextNodes(root, textNodes);
   }
 
-  const items = textNodes.map((node) => {
-    const fg = getSolidFill(node) || { r: 0, g: 0, b: 0 };
-    const bg = findBackgroundColor(node) || { r: 1, g: 1, b: 1 };
-    const ratio = contrastRatio(fg, bg);
-    const fontSize = typeof node.fontSize === "number" ? node.fontSize : 16;
-    const isLarge = fontSize >= 24;
-    const passes = ratio >= (isLarge ? 3 : 4.5);
-
-    return {
-      id: node.id,
-      name: node.name,
-      ratio: Math.round(ratio * 100) / 100,
-      hexFg: toHex(fg),
-      hexBg: toHex(bg),
-      isLarge,
-      passes,
-    };
-  });
-
+  const items = textNodes.map(buildItem);
   items.sort((x, y) => (x.passes === y.passes ? x.ratio - y.ratio : x.passes ? 1 : -1));
 
-  figma.ui.postMessage({
-    type: "scan-result",
-    items,
-    scope: figma.currentPage.selection.length > 0 ? "selection" : "page",
-  });
+  figma.ui.postMessage({ type: "scan-result", items, scope });
 }
 
 function focusNode(id: string) {
@@ -189,23 +203,38 @@ function focusNode(id: string) {
   figma.viewport.scrollAndZoomIntoView([node as SceneNode]);
 }
 
-function applyFix(id: string) {
-  const node = figma.getNodeById(id) as TextNode | null;
-  if (!node || node.type !== "TEXT") return;
-
+function fixNode(node: TextNode): boolean {
   const fg = getSolidFill(node);
   const bg = findBackgroundColor(node);
-  if (!fg || !bg) return;
+  if (!fg || !bg) return false;
 
   const fontSize = typeof node.fontSize === "number" ? node.fontSize : 16;
   const target = fontSize >= 24 ? 3 : 4.5;
   const fixed = suggestFix(fg, bg, target);
 
   node.fills = [{ type: "SOLID", color: fixed }];
-  runScan();
+  return true;
+}
+
+function applyFix(id: string, scope: ScanScope) {
+  const node = figma.getNodeById(id) as TextNode | null;
+  if (!node || node.type !== "TEXT") return;
+  fixNode(node);
+  runScan(scope);
+}
+
+async function applyFixAll(ids: string[], scope: ScanScope) {
+  for (const id of ids) {
+    const node = figma.getNodeById(id) as TextNode | null;
+    if (node && node.type === "TEXT") fixNode(node);
+  }
+  await runScan(scope);
+  figma.notify(`Fixed ${ids.length} layer${ids.length === 1 ? "" : "s"}`);
 }
 
 // ---- message routing ----
+
+let lastScope: ScanScope = "page";
 
 figma.on("selectionchange", () => {
   evaluatePair();
@@ -213,10 +242,14 @@ figma.on("selectionchange", () => {
 
 figma.ui.onmessage = (msg) => {
   if (msg.type === "pair-refresh") evaluatePair();
-  if (msg.type === "scan") runScan();
+  if (msg.type === "scan") {
+    lastScope = msg.scope || lastScope;
+    runScan(lastScope);
+  }
   if (msg.type === "focus") focusNode(msg.id);
-  if (msg.type === "fix") applyFix(msg.id);
+  if (msg.type === "fix") applyFix(msg.id, lastScope);
+  if (msg.type === "fix-all") applyFixAll(msg.ids, lastScope);
 };
 
 evaluatePair();
-runScan();
+runScan(lastScope);
