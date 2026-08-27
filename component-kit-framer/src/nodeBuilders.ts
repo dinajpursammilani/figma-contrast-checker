@@ -192,12 +192,15 @@ export async function insertComponent(id: string, _name: string) {
   const def = COMPONENTS[id]
   if (!def) return
 
-  if (!framer.isAllowedTo("createCodeFile", "addComponentInstance")) {
+  if (!framer.isAllowedTo("createCodeFile", "addDetachedComponentLayers")) {
     throw new Error(
       "This Framer workspace/plan doesn't allow plugins to create code components. This isn't a bug in the plugin — it's a permission gate on the workspace."
     )
   }
 
   const url = await getInsertUrl(def)
-  await framer.addComponentInstance({ url })
+  // Detached (not addComponentInstance): decomposes into real, independent FrameNode/TextNode
+  // layers on the canvas — double-click-to-edit-text and drag-to-resize work, matching Figma.
+  // A linked instance would only expose props via a side panel, not free-form canvas editing.
+  await framer.addDetachedComponentLayers({ url, layout: true })
 }
