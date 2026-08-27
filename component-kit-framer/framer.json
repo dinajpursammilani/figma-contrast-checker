@@ -1,0 +1,6 @@
+{
+    "id": "component-kit-local",
+    "name": "Component Kit",
+    "modes": ["canvas"],
+    "icon": "/icon.svg"
+}
