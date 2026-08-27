@@ -1,0 +1,11 @@
+{
+  "name": "Component Kit",
+  "id": "component-kit-local",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  }
+}
