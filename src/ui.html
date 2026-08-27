@@ -3,56 +3,231 @@
 <head>
 <meta charset="utf-8" />
 <style>
-  :root { color-scheme: light dark; }
-  body {
-    font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
-    margin: 0;
-    padding: 16px;
-    color: #1a1a1a;
-    background: #fff;
+  * { box-sizing: border-box; }
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --bg-subtle: #f5f5f6;
+    --text: #1a1a1a;
+    --text-muted: #6b6b6f;
+    --border: #e6e6e8;
+    --pass: #12855c;
+    --pass-bg: #e6f6ef;
+    --fail: #d5372c;
+    --fail-bg: #fdeceb;
+    --accent: #4c5eff;
   }
-  .empty { color: #888; font-size: 12px; text-align: center; margin-top: 40px; }
-  .ratio { font-size: 40px; font-weight: 700; text-align: center; margin: 4px 0; }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #2c2c2e;
+      --bg-subtle: #232325;
+      --text: #f2f2f3;
+      --text-muted: #a0a0a3;
+      --border: #3a3a3d;
+      --pass: #4ade9a;
+      --pass-bg: #133428;
+      --fail: #ff6b60;
+      --fail-bg: #3a1c1a;
+      --accent: #8b93ff;
+    }
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0;
+    color: var(--text);
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .tab {
+    flex: 1; text-align: center; padding: 10px 0; font-size: 12px; font-weight: 600;
+    color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .panel { display: none; flex: 1; min-height: 0; flex-direction: column; }
+  .panel.active { display: flex; }
+
+  /* ---- Scan panel ---- */
+  .scan-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .scope { font-size: 11px; color: var(--text-muted); }
+  .summary { font-size: 11px; font-weight: 600; }
+  .summary.ok { color: var(--pass); }
+  .summary.bad { color: var(--fail); }
+  .rescan-btn {
+    font-size: 11px; border: 1px solid var(--border); background: var(--bg-subtle);
+    color: var(--text); padding: 4px 10px; border-radius: 6px; cursor: pointer;
+  }
+  .rescan-btn:hover { border-color: var(--accent); }
+
+  .list { flex: 1; overflow-y: auto; padding: 8px; }
+  .empty { text-align: center; color: var(--text-muted); font-size: 12px; margin-top: 60px; padding: 0 20px; }
+
+  .item {
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+  }
+  .item:hover { border-color: var(--accent); }
+  .swatchpair { display: flex; flex-shrink: 0; }
+  .sw { width: 18px; height: 18px; border: 1px solid rgba(128,128,128,0.3); }
+  .sw:first-child { border-radius: 4px 0 0 4px; }
+  .sw:last-child { border-radius: 0 4px 4px 0; margin-left: -1px; }
+
+  .item-info { flex: 1; min-width: 0; }
+  .item-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-ratio { font-size: 11px; color: var(--text-muted); }
+
+  .badge { font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 999px; flex-shrink: 0; }
+  .badge.pass { color: var(--pass); background: var(--pass-bg); }
+  .badge.fail { color: var(--fail); background: var(--fail-bg); }
+
+  .fix-btn {
+    font-size: 10px; font-weight: 600; border: none; background: var(--accent); color: white;
+    padding: 5px 8px; border-radius: 6px; cursor: pointer; flex-shrink: 0;
+  }
+  .fix-btn:hover { opacity: 0.85; }
+
+  /* ---- Pair panel ---- */
+  .pair-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 16px; }
   .swatches { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
-  .swatch { display: flex; align-items: center; gap: 6px; font-size: 11px; }
-  .dot { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); }
-  .checks { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
-  .check { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 6px 10px; border-radius: 6px; background: #f5f5f5; }
-  .pass { color: #0f8a3f; font-weight: 600; }
-  .fail { color: #d92d20; font-weight: 600; }
-  .error { color: #d92d20; font-size: 12px; text-align: center; margin-top: 40px; }
+  .swatch { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+  .dot { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(128,128,128,0.3); }
+  .ratio { font-size: 42px; font-weight: 700; text-align: center; margin: 4px 0; }
+  .checks { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+  .check {
+    display: flex; justify-content: space-between; align-items: center; font-size: 12px;
+    padding: 7px 10px; border-radius: 6px; background: var(--bg-subtle);
+  }
+  .pass-text { color: var(--pass); font-weight: 600; }
+  .fail-text { color: var(--fail); font-weight: 600; }
 </style>
 </head>
 <body>
-  <div id="app"><div class="empty">Select two layers with solid fills to compare contrast.</div></div>
+  <div class="tabs">
+    <div class="tab active" data-tab="scan">Scan</div>
+    <div class="tab" data-tab="pair">Compare 2 layers</div>
+  </div>
+
+  <div class="panel active" id="panel-scan">
+    <div class="scan-header">
+      <span class="scope" id="scope-label">Scanning page…</span>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="summary" id="summary"></span>
+        <button class="rescan-btn" id="rescan">Rescan</button>
+      </div>
+    </div>
+    <div class="list" id="list"><div class="empty">Scanning…</div></div>
+  </div>
+
+  <div class="panel" id="panel-pair">
+    <div class="pair-body" id="pair-body">
+      <div class="empty">Select two layers with solid fills to compare contrast.</div>
+    </div>
+  </div>
 
 <script>
-  const app = document.getElementById("app");
+  const tabs = document.querySelectorAll(".tab");
+  const panels = { scan: document.getElementById("panel-scan"), pair: document.getElementById("panel-pair") };
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      tabs.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      Object.values(panels).forEach((p) => p.classList.remove("active"));
+      panels[tab.dataset.tab].classList.add("active");
+    });
+  });
+
+  document.getElementById("rescan").addEventListener("click", () => {
+    parent.postMessage({ pluginMessage: { type: "scan" } }, "*");
+  });
+
+  function renderScan(msg) {
+    document.getElementById("scope-label").textContent =
+      msg.scope === "selection" ? "Scanning selection" : "Scanning current page";
+
+    const list = document.getElementById("list");
+    const summary = document.getElementById("summary");
+
+    if (msg.items.length === 0) {
+      list.innerHTML = '<div class="empty">No text layers found. Select a frame, or make sure the page has text.</div>';
+      summary.textContent = "";
+      return;
+    }
+
+    const failCount = msg.items.filter((i) => !i.passes).length;
+    summary.textContent = failCount === 0 ? "All pass" : failCount + " failing";
+    summary.className = "summary " + (failCount === 0 ? "ok" : "bad");
+
+    list.innerHTML = msg.items.map((item) => `
+      <div class="item" data-id="${item.id}" data-action="focus">
+        <div class="swatchpair">
+          <span class="sw" style="background:${item.hexFg}"></span>
+          <span class="sw" style="background:${item.hexBg}"></span>
+        </div>
+        <div class="item-info">
+          <div class="item-name">${escapeHtml(item.name)}</div>
+          <div class="item-ratio">${item.ratio}:1 ${item.isLarge ? "· large text" : ""}</div>
+        </div>
+        <span class="badge ${item.passes ? "pass" : "fail"}">${item.passes ? "Pass" : "Fail"}</span>
+        ${item.passes ? "" : `<button class="fix-btn" data-id="${item.id}" data-action="fix">Fix</button>`}
+      </div>
+    `).join("");
+
+    list.querySelectorAll("[data-action='focus']").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        if (e.target.closest("[data-action='fix']")) return;
+        parent.postMessage({ pluginMessage: { type: "focus", id: el.dataset.id } }, "*");
+      });
+    });
+    list.querySelectorAll("[data-action='fix']").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        parent.postMessage({ pluginMessage: { type: "fix", id: el.dataset.id } }, "*");
+      });
+    });
+  }
+
+  function renderPair(msg) {
+    const body = document.getElementById("pair-body");
+    if (msg.type === "pair-error") {
+      body.innerHTML = '<div class="empty">' + msg.message + "</div>";
+      return;
+    }
+    body.innerHTML = `
+      <div class="swatches">
+        <div class="swatch"><span class="dot" style="background:${msg.hexA}"></span>${msg.hexA}</div>
+        <div class="swatch"><span class="dot" style="background:${msg.hexB}"></span>${msg.hexB}</div>
+      </div>
+      <div class="ratio">${msg.ratio}:1</div>
+      <div class="checks">
+        <div class="check"><span>AA — normal text</span><span class="${msg.aaNormal ? "pass-text" : "fail-text"}">${msg.aaNormal ? "Pass" : "Fail"}</span></div>
+        <div class="check"><span>AA — large text</span><span class="${msg.aaLarge ? "pass-text" : "fail-text"}">${msg.aaLarge ? "Pass" : "Fail"}</span></div>
+        <div class="check"><span>AAA — normal text</span><span class="${msg.aaaNormal ? "pass-text" : "fail-text"}">${msg.aaaNormal ? "Pass" : "Fail"}</span></div>
+      </div>
+    `;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
 
   onmessage = (event) => {
     const msg = event.data.pluginMessage;
     if (!msg) return;
-
-    if (msg.type === "error") {
-      app.innerHTML = '<div class="error">' + msg.message + '</div>';
-      return;
-    }
-
-    if (msg.type === "result") {
-      app.innerHTML = `
-        <div class="swatches">
-          <div class="swatch"><span class="dot" style="background:${msg.hexA}"></span>${msg.hexA}</div>
-          <div class="swatch"><span class="dot" style="background:${msg.hexB}"></span>${msg.hexB}</div>
-        </div>
-        <div class="ratio">${msg.ratio}:1</div>
-        <div class="checks">
-          <div class="check"><span>AA — normal text</span><span class="${msg.aaNormal ? 'pass' : 'fail'}">${msg.aaNormal ? 'Pass' : 'Fail'}</span></div>
-          <div class="check"><span>AA — large text</span><span class="${msg.aaLarge ? 'pass' : 'fail'}">${msg.aaLarge ? 'Pass' : 'Fail'}</span></div>
-          <div class="check"><span>AAA — normal text</span><span class="${msg.aaaNormal ? 'pass' : 'fail'}">${msg.aaaNormal ? 'Pass' : 'Fail'}</span></div>
-        </div>
-      `;
-    }
+    if (msg.type === "scan-result") renderScan(msg);
+    if (msg.type === "pair-result" || msg.type === "pair-error") renderPair(msg);
   };
+
+  parent.postMessage({ pluginMessage: { type: "scan" } }, "*");
 </script>
 </body>
 </html>
