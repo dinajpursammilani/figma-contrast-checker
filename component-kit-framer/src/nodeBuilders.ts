@@ -199,10 +199,18 @@ export async function insertComponent(id: string, _name: string) {
   }
 
   const url = await getInsertUrl(def)
-  // Inserted as a linked instance, not detached: addDetachedComponentLayers only works on
-  // pre-published, Framer-built module URLs (confirmed against Framer's own example plugin) —
-  // a CodeFile we just created at runtime isn't structurally analyzable yet, so detaching it
-  // fails with "not a visual component". To free-form edit an inserted component, use Framer's
-  // own canvas "Detach" action (right-click the instance) — that's the supported path for this.
-  await framer.addComponentInstance({ url })
+
+  // Try detached layers first (real double-click-editable canvas objects). A freshly-created
+  // CodeFile may need its build artifact warmed before Framer can structurally analyze it for
+  // detaching — preload explicitly, then attempt detach. If it's still not detachable (runtime
+  // CodeFiles may just not support this at all — Framer's own example plugin only detaches
+  // pre-published module URLs, never a CodeFile it just created), fall back to a linked instance,
+  // which always works and still shows real text.
+  try {
+    await framer.preloadDetachedComponentLayers(url)
+    await framer.addDetachedComponentLayers({ url, layout: true })
+  } catch (err) {
+    console.warn("Detach failed, falling back to linked instance:", err)
+    await framer.addComponentInstance({ url })
+  }
 }
