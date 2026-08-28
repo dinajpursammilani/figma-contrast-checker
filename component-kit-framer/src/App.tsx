@@ -131,9 +131,23 @@ export default function App() {
       .finally(() => setCheckingSession(false))
   }, [])
 
+  const debug = (
+    <div
+      style={{
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
+        background: "red", color: "white", fontSize: 10, padding: "2px 6px",
+        fontFamily: "monospace",
+      }}
+    >
+      html[data-framer-theme]={JSON.stringify(document.documentElement.getAttribute("data-framer-theme"))} | prefers-dark=
+      {String(window.matchMedia("(prefers-color-scheme: dark)").matches)}
+    </div>
+  )
+
   if (checkingSession) {
     return (
       <div className="app">
+        {debug}
         <div className="empty" style={{ marginTop: 120 }}>
           Loading…
         </div>
@@ -142,7 +156,12 @@ export default function App() {
   }
 
   if (!user) {
-    return <Login onLoggedIn={setUser} />
+    return (
+      <>
+        {debug}
+        <Login onLoggedIn={setUser} />
+      </>
+    )
   }
 
   return <Gallery user={user} onLogOut={() => setUser(null)} />
