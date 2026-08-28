@@ -15,6 +15,19 @@ import Boards from "./Boards"
 import Colors from "./Colors"
 import SaveDrawer from "./SaveDrawer"
 
+function DragHandleIcon() {
+  return (
+    <svg className="drag-handle-icon" width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+      <circle cx="4" cy="3" r="1.3" />
+      <circle cx="10" cy="3" r="1.3" />
+      <circle cx="4" cy="7" r="1.3" />
+      <circle cx="10" cy="7" r="1.3" />
+      <circle cx="4" cy="11" r="1.3" />
+      <circle cx="10" cy="11" r="1.3" />
+    </svg>
+  )
+}
+
 function categoryIcon(category: string): string {
   switch (category) {
     case "Sections":
@@ -438,8 +451,10 @@ function GalleryCard({
         </span>
         {locked ? (
           <span className="locked-hint">Tap to unlock</span>
+        ) : busy ? (
+          <span className="insert-hint">Inserting…</span>
         ) : (
-          <span className="insert-hint">{busy ? "Inserting…" : warmed ? "Drag to insert" : "Loading…"}</span>
+          warmed && <DragHandleIcon />
         )}
       </div>
     </div>
