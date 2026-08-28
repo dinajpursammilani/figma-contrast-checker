@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { insertComponent, insertExternalTestButton } from "./nodeBuilders"
+import { insertComponent } from "./nodeBuilders"
 
 const stroke = "var(--border)"
 const accent = "#4a5aff"
@@ -168,30 +168,6 @@ export default function App() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <button
-          style={{
-            marginTop: 8,
-            width: "100%",
-            padding: "6px 10px",
-            fontSize: 11,
-            fontWeight: 700,
-            border: "1px dashed #4a5aff",
-            borderRadius: 6,
-            background: "transparent",
-            color: "#4a5aff",
-            cursor: "pointer",
-          }}
-          onClick={async () => {
-            try {
-              await insertExternalTestButton()
-              showToast("Inserted external test button — try double-clicking it")
-            } catch (err) {
-              showToast(err instanceof Error ? err.message : "Test insert failed")
-            }
-          }}
-        >
-          TEST: insert real published component
-        </button>
       </div>
 
       <div className="categories">

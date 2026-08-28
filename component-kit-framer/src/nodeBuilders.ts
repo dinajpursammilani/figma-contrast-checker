@@ -350,13 +350,6 @@ async function getInsertUrl(def: ComponentDef): Promise<string> {
   return componentExport.insertURL
 }
 
-// TEMPORARY: proves the cross-project "Unlink Instance" flow works with a real published
-// component, using Framer's own public example URL (from their design-system example plugin),
-// not anything scraped from Kompa. Remove once we've validated the architecture.
-export async function insertExternalTestButton() {
-  await framer.addComponentInstance({ url: "https://framer.com/m/Button-vh3D.js" })
-}
-
 export async function insertComponent(id: string, _name: string) {
   const def = COMPONENTS[id]
   if (!def) return
