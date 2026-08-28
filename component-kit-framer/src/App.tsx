@@ -166,6 +166,8 @@ function Gallery({ user }: { user: User }) {
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
   const [selectedAccess, setSelectedAccess] = useState<Set<"free" | "pro">>(new Set(["free", "pro"]))
   const [openFilter, setOpenFilter] = useState<"category" | "access" | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [toast, setToast] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -330,72 +332,90 @@ function Gallery({ user }: { user: User }) {
             <button className="browse-back" onClick={() => setScreen("tiles")}>
               ‹
             </button>
-            <input
-              className="search browse-search"
-              placeholder="Search components…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div className="filter-row">
+            <span className="browse-header-spacer" />
             <button
-              className={`filter-chip ${selectedCategories.size < allCategories.length ? "active" : ""}`}
-              onClick={() => setOpenFilter(openFilter === "category" ? null : "category")}
+              className={`icon-btn ${searchOpen ? "active" : ""}`}
+              title="Search"
+              onClick={() => setSearchOpen((v) => !v)}
             >
-              {selectedCategories.size === 1 ? Array.from(selectedCategories)[0] : "Category"}
-              {selectedCategories.size < allCategories.length && (
-                <span
-                  className="filter-chip-clear"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSelectedCategories(new Set(allCategories))
-                  }}
-                >
-                  ✕
-                </span>
-              )}
+              🔍
             </button>
             <button
-              className={`filter-chip ${selectedAccess.size < 2 ? "active" : ""}`}
-              onClick={() => setOpenFilter(openFilter === "access" ? null : "access")}
+              className={`icon-btn ${filtersOpen ? "active" : ""}`}
+              title="Filter"
+              onClick={() => {
+                setFiltersOpen((v) => !v)
+                setOpenFilter(null)
+              }}
             >
-              {selectedAccess.size === 1 ? (Array.from(selectedAccess)[0] === "pro" ? "Pro" : "Free") : "Access"}
-              {selectedAccess.size < 2 && (
-                <span
-                  className="filter-chip-clear"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSelectedAccess(new Set(["free", "pro"]))
-                  }}
-                >
-                  ✕
-                </span>
-              )}
+              🎚️
             </button>
           </div>
 
-          {openFilter === "category" && (
-            <div className="filter-dropdown">
-              {allCategories.map((cat) => (
-                <label key={cat} className="filter-option">
-                  <input type="checkbox" checked={selectedCategories.has(cat)} onChange={() => toggleCategory(cat)} />
-                  {cat}
-                </label>
-              ))}
+          {searchOpen && (
+            <div className="header">
+              <input
+                className="search"
+                placeholder="Search components…"
+                autoFocus
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           )}
-          {openFilter === "access" && (
-            <div className="filter-dropdown">
-              <label className="filter-option">
-                <input type="checkbox" checked={selectedAccess.has("free")} onChange={() => toggleAccess("free")} />
-                Free
-              </label>
-              <label className="filter-option">
-                <input type="checkbox" checked={selectedAccess.has("pro")} onChange={() => toggleAccess("pro")} />
-                Pro
-              </label>
-            </div>
+
+          {filtersOpen && (
+            <>
+              <div className="filter-row">
+                <button
+                  className={`filter-chip ${selectedCategories.size < allCategories.length ? "active" : ""}`}
+                  onClick={() => setOpenFilter(openFilter === "category" ? null : "category")}
+                >
+                  Category
+                  {selectedCategories.size < allCategories.length && (
+                    <span className="filter-chip-count">{selectedCategories.size}</span>
+                  )}
+                </button>
+                <button
+                  className={`filter-chip ${selectedAccess.size < 2 ? "active" : ""}`}
+                  onClick={() => setOpenFilter(openFilter === "access" ? null : "access")}
+                >
+                  Access
+                  {selectedAccess.size < 2 && <span className="filter-chip-count">{selectedAccess.size}</span>}
+                </button>
+              </div>
+
+              {openFilter === "category" && (
+                <div className="filter-dropdown">
+                  {allCategories.map((cat) => (
+                    <label key={cat} className="filter-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.has(cat)}
+                        onChange={() => toggleCategory(cat)}
+                      />
+                      {cat}
+                    </label>
+                  ))}
+                </div>
+              )}
+              {openFilter === "access" && (
+                <div className="filter-dropdown">
+                  <label className="filter-option">
+                    <input
+                      type="checkbox"
+                      checked={selectedAccess.has("free")}
+                      onChange={() => toggleAccess("free")}
+                    />
+                    Free
+                  </label>
+                  <label className="filter-option">
+                    <input type="checkbox" checked={selectedAccess.has("pro")} onChange={() => toggleAccess("pro")} />
+                    Pro
+                  </label>
+                </div>
+              )}
+            </>
           )}
 
           <div className="list">

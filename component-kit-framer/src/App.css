@@ -170,10 +170,23 @@ body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 .filter-chip.active { color: var(--accent) !important; border-color: var(--accent) !important; background: var(--accent-soft) !important; }
-.filter-chip-clear {
+.filter-chip-count {
   display: flex; align-items: center; justify-content: center;
-  width: 14px; height: 14px; border-radius: 999px; background: var(--accent); color: white; font-size: 8px;
+  min-width: 14px; height: 14px; padding: 0 3px; border-radius: 999px; background: var(--accent); color: white; font-size: 9px;
 }
+
+.browse-header-spacer { flex: 1; }
+.icon-btn {
+  all: unset;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  width: 28px !important; height: 28px !important; border-radius: 999px !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  font-size: 12px !important; cursor: pointer !important; color: var(--text-muted) !important;
+  background: var(--bg-subtle) !important;
+}
+.icon-btn.active { color: var(--accent) !important; background: var(--accent-soft) !important; }
+.icon-btn:hover { color: var(--text) !important; }
 
 .filter-dropdown {
   display: flex; flex-direction: column; gap: 2px; padding: 8px 16px; border-bottom: 1px solid var(--border);
@@ -198,14 +211,16 @@ body {
 .card {
   position: relative; min-height: 106px;
   border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg);
-  cursor: pointer; transition: border-color 0.12s ease;
+  cursor: grab; transition: border-color 0.12s ease;
 }
-.card:hover { border-color: var(--accent); border-style: dashed; }
-.card:active { border-style: solid; }
+.card:hover { border-color: var(--accent); }
+.card:active { cursor: grabbing; }
 .card.busy { opacity: 0.6; pointer-events: none; }
-/* Locked cards aren't draggable, so hovering must not borrow the "draggable" blue border —
-   it stays neutral, with the lock affordance carried entirely by the preview + badge. */
-.card.locked:hover { border-color: var(--border); border-style: solid; }
+/* Locked cards aren't draggable, so hovering must not borrow the "draggable" cursor/border —
+   the lock affordance is carried entirely by the preview + badge instead. */
+.card.locked { cursor: pointer; }
+.card.locked:hover { border-color: var(--border); }
+.card.locked:active { cursor: pointer; }
 
 .card.skeleton {
   height: 116px; cursor: default; pointer-events: none;
