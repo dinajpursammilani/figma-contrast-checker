@@ -4,11 +4,11 @@ import { insertComponent } from "./nodeBuilders"
 import { restoreSession, signOut } from "./lib/auth"
 import { getData, setDataInBackground } from "./lib/pluginStorage"
 import { fetchComponents, type ComponentRow } from "./lib/components"
+import { getOnboardingStatus } from "./lib/profile"
 import Login from "./Login"
 import Onboarding from "./Onboarding"
 
 const THEME_KEY = "theme-preference"
-const ONBOARDING_DONE_KEY = "onboarding-done"
 type ThemePref = "light" | "dark"
 
 function useTheme() {
@@ -46,8 +46,8 @@ export default function App() {
       .then(async (restoredUser) => {
         setUser(restoredUser)
         if (restoredUser) {
-          const done = await getData(ONBOARDING_DONE_KEY)
-          setNeedsOnboarding(done !== "true")
+          const done = await getOnboardingStatus(restoredUser.id)
+          setNeedsOnboarding(!done)
         }
       })
       .finally(() => setCheckingSession(false))
@@ -55,8 +55,8 @@ export default function App() {
 
   async function handleLoggedIn(loggedInUser: User) {
     setUser(loggedInUser)
-    const done = await getData(ONBOARDING_DONE_KEY)
-    setNeedsOnboarding(done !== "true")
+    const done = await getOnboardingStatus(loggedInUser.id)
+    setNeedsOnboarding(!done)
   }
 
   if (checkingSession) {
@@ -74,14 +74,7 @@ export default function App() {
   }
 
   if (needsOnboarding) {
-    return (
-      <Onboarding
-        onDone={() => {
-          setDataInBackground(ONBOARDING_DONE_KEY, "true")
-          setNeedsOnboarding(false)
-        }}
-      />
-    )
+    return <Onboarding userId={user.id} onDone={() => setNeedsOnboarding(false)} />
   }
 
   return <Gallery user={user} onLogOut={() => setUser(null)} theme={theme} onToggleTheme={toggle} />

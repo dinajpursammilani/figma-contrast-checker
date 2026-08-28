@@ -1,7 +1,5 @@
 import { useState } from "react"
-import { setDataInBackground } from "./lib/pluginStorage"
-
-const ONBOARDING_KEY = "onboarding-answers"
+import { completeOnboarding } from "./lib/profile"
 
 const BUILD_OPTIONS = [
   "Landing page",
@@ -42,8 +40,9 @@ interface Answers {
 
 const TOTAL_STEPS = 4
 
-export default function Onboarding({ onDone }: { onDone: () => void }) {
+export default function Onboarding({ userId, onDone }: { userId: string; onDone: () => void }) {
   const [step, setStep] = useState(1)
+  const [saving, setSaving] = useState(false)
   const [answers, setAnswers] = useState<Answers>({
     building: [],
     skill: "",
@@ -62,8 +61,9 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
     }))
   }
 
-  function finish() {
-    setDataInBackground(ONBOARDING_KEY, JSON.stringify(answers))
+  async function finish() {
+    setSaving(true)
+    await completeOnboarding(userId, answers)
     onDone()
   }
 
@@ -197,10 +197,10 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
 
       <button
         className="onboarding-continue"
-        disabled={!canContinue}
+        disabled={!canContinue || saving}
         onClick={() => (step < TOTAL_STEPS ? setStep(step + 1) : finish())}
       >
-        Continue
+        {saving ? "Saving…" : "Continue"}
       </button>
     </div>
   )
