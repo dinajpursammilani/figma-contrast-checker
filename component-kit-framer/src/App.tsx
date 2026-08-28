@@ -130,59 +130,13 @@ function Shell({
   theme: ThemePref
   onToggleTheme: () => void
 }) {
-  const [view, setView] = useState<"home" | "boards" | "colors" | "settings">("home")
+  const [view, setView] = useState<"home" | "build" | "boards" | "colors" | "settings">("home")
+  const [buildCategory, setBuildCategory] = useState<string | null>(null)
 
-  return (
-    <div className="shell">
-      <div className="shell-content">
-        {view === "home" && <Gallery user={user} />}
-        {view === "boards" && <Boards />}
-        {view === "colors" && <Colors />}
-        {view === "settings" && (
-          <Settings user={user} theme={theme} onToggleTheme={onToggleTheme} onLogOut={onLogOut} />
-        )}
-      </div>
-      <div className="bottom-nav">
-        <button className={`nav-btn ${view === "home" ? "active" : ""}`} onClick={() => setView("home")}>
-          🏠 Home
-        </button>
-        <button className={`nav-btn ${view === "boards" ? "active" : ""}`} onClick={() => setView("boards")}>
-          🔖 Boards
-        </button>
-        <button className={`nav-btn ${view === "colors" ? "active" : ""}`} onClick={() => setView("colors")}>
-          🎨 Colors
-        </button>
-        <button className={`nav-btn ${view === "settings" ? "active" : ""}`} onClick={() => setView("settings")}>
-          ⚙️ Settings
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function Gallery({ user }: { user: User }) {
   const [components, setComponents] = useState<ComponentRow[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
-  const [selectedAccess, setSelectedAccess] = useState<Set<"free" | "pro">>(new Set(["free", "pro"]))
-  const [openFilter, setOpenFilter] = useState<"category" | "access" | null>(null)
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [toast, setToast] = useState<string | null>(null)
-  const [busyId, setBusyId] = useState<string | null>(null)
-  const [savingComponent, setSavingComponent] = useState<ComponentRow | null>(null)
-  const [detailComponent, setDetailComponent] = useState<ComponentRow | null>(null)
-  const [greetingName, setGreetingName] = useState<string>(user.email ? friendlyNameFromEmail(user.email) : "there")
   const [warmedFiles, setWarmedFiles] = useState<Set<string>>(new Set())
   const [isPro, setIsPro] = useState<boolean | null>(null)
-  const [screen, setScreen] = useState<"tiles" | "browse">("tiles")
-
-  useEffect(() => {
-    getFullName(user.id).then((name) => {
-      if (name) setGreetingName(name)
-    })
-  }, [user.id])
 
   useEffect(() => {
     getProStatus().then(setIsPro)
@@ -224,10 +178,67 @@ function Gallery({ user }: { user: User }) {
     })
   }, [components, isPro])
 
-  const allCategories = useMemo(
-    () => (components ? Array.from(new Set(components.map((c) => c.category))) : []),
-    [components]
+  function openBuild(category: string | null) {
+    setBuildCategory(category)
+    setView("build")
+  }
+
+  return (
+    <div className="shell">
+      <div className="shell-content">
+        {view === "home" && <Home user={user} components={components} onOpenCategory={openBuild} />}
+        {view === "build" && (
+          <Browse
+            components={components}
+            loadError={loadError}
+            isPro={isPro}
+            warmedFiles={warmedFiles}
+            initialCategory={buildCategory}
+          />
+        )}
+        {view === "boards" && <Boards />}
+        {view === "colors" && <Colors />}
+        {view === "settings" && (
+          <Settings user={user} theme={theme} onToggleTheme={onToggleTheme} onLogOut={onLogOut} />
+        )}
+      </div>
+      <div className="bottom-nav">
+        <button className={`nav-btn ${view === "home" ? "active" : ""}`} onClick={() => setView("home")}>
+          🏠 Home
+        </button>
+        <button className={`nav-btn ${view === "build" ? "active" : ""}`} onClick={() => openBuild(null)}>
+          🧱 Build
+        </button>
+        <button className={`nav-btn ${view === "boards" ? "active" : ""}`} onClick={() => setView("boards")}>
+          🔖 Boards
+        </button>
+        <button className={`nav-btn ${view === "colors" ? "active" : ""}`} onClick={() => setView("colors")}>
+          🎨 Colors
+        </button>
+        <button className={`nav-btn ${view === "settings" ? "active" : ""}`} onClick={() => setView("settings")}>
+          ⚙️ Settings
+        </button>
+      </div>
+    </div>
   )
+}
+
+function Home({
+  user,
+  components,
+  onOpenCategory,
+}: {
+  user: User
+  components: ComponentRow[] | null
+  onOpenCategory: (category: string | null) => void
+}) {
+  const [greetingName, setGreetingName] = useState<string>(user.email ? friendlyNameFromEmail(user.email) : "there")
+
+  useEffect(() => {
+    getFullName(user.id).then((name) => {
+      if (name) setGreetingName(name)
+    })
+  }, [user.id])
 
   const categoryCounts = useMemo(() => {
     if (!components) return []
@@ -236,11 +247,69 @@ function Gallery({ user }: { user: User }) {
     return Array.from(counts.entries())
   }, [components])
 
-  function openCategory(category: string | null) {
-    setSelectedCategories(new Set(category ? [category] : allCategories))
-    setSelectedAccess(new Set(["free", "pro"]))
-    setScreen("browse")
-  }
+  return (
+    <div className="app">
+      <div className="greeting">
+        <div className="greeting-title">Hey, {greetingName}</div>
+        <div className="greeting-subtitle">What will you build today?</div>
+      </div>
+
+      <div className="tiles">
+        <button className="tile tile-browse" onClick={() => onOpenCategory(null)}>
+          <div className="tile-icon">✨</div>
+          <div className="tile-name">Browse all</div>
+          <div className="tile-count">{components ? `${components.length} components` : "…"}</div>
+        </button>
+
+        {categoryCounts.map(([category, count]) => (
+          <button key={category} className="tile" onClick={() => onOpenCategory(category)}>
+            <div className="tile-icon">{categoryIcon(category)}</div>
+            <div className="tile-name">{category}</div>
+            <div className="tile-count">{count} components</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Browse({
+  components,
+  loadError,
+  isPro,
+  warmedFiles,
+  initialCategory,
+}: {
+  components: ComponentRow[] | null
+  loadError: string | null
+  isPro: boolean | null
+  warmedFiles: Set<string>
+  initialCategory: string | null
+}) {
+  const allCategories = useMemo(
+    () => (components ? Array.from(new Set(components.map((c) => c.category))) : []),
+    [components]
+  )
+
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
+    new Set(initialCategory ? [initialCategory] : allCategories)
+  )
+  const [selectedAccess, setSelectedAccess] = useState<Set<"free" | "pro">>(new Set(["free", "pro"]))
+  const [openFilter, setOpenFilter] = useState<"category" | "access" | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [toast, setToast] = useState<string | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [savingComponent, setSavingComponent] = useState<ComponentRow | null>(null)
+  const [detailComponent, setDetailComponent] = useState<ComponentRow | null>(null)
+
+  // Re-seed the category filter whenever the caller opens Browse with a different starting
+  // category (e.g. tapping a different Home tile, or the bottom-nav Build tab for "all").
+  useEffect(() => {
+    setSelectedCategories(new Set(initialCategory ? [initialCategory] : allCategories))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCategory])
 
   function toggleCategory(category: string) {
     setSelectedCategories((prev) => {
@@ -303,144 +372,112 @@ function Gallery({ user }: { user: User }) {
 
   return (
     <div className="app">
-      {screen === "tiles" ? (
-        <>
-          <div className="greeting">
-            <div className="greeting-title">Hey, {greetingName}</div>
-            <div className="greeting-subtitle">What will you build today?</div>
-          </div>
+      <div className="browse-header">
+        <span className="browse-header-spacer" />
+        <button
+          className={`icon-btn ${searchOpen ? "active" : ""}`}
+          title="Search"
+          onClick={() => setSearchOpen((v) => !v)}
+        >
+          🔍
+        </button>
+        <button
+          className={`icon-btn ${filtersOpen ? "active" : ""}`}
+          title="Filter"
+          onClick={() => {
+            setFiltersOpen((v) => !v)
+            setOpenFilter(null)
+          }}
+        >
+          🎚️
+        </button>
+      </div>
 
-          <div className="tiles">
-            <button className="tile tile-browse" onClick={() => openCategory(null)}>
-              <div className="tile-icon">✨</div>
-              <div className="tile-name">Browse all</div>
-              <div className="tile-count">{components ? `${components.length} components` : "…"}</div>
-            </button>
+      {searchOpen && (
+        <div className="header">
+          <input
+            className="search"
+            placeholder="Search components…"
+            autoFocus
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      )}
 
-            {categoryCounts.map(([category, count]) => (
-              <button key={category} className="tile" onClick={() => openCategory(category)}>
-                <div className="tile-icon">{categoryIcon(category)}</div>
-                <div className="tile-name">{category}</div>
-                <div className="tile-count">{count} components</div>
-              </button>
-            ))}
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="browse-header">
-            <button className="browse-back" onClick={() => setScreen("tiles")}>
-              ‹
-            </button>
-            <span className="browse-header-spacer" />
+      {filtersOpen && (
+        <div className="filter-row-wrap">
+          <div className="filter-row">
             <button
-              className={`icon-btn ${searchOpen ? "active" : ""}`}
-              title="Search"
-              onClick={() => setSearchOpen((v) => !v)}
+              className={`filter-chip ${selectedCategories.size < allCategories.length ? "active" : ""}`}
+              onClick={() => setOpenFilter(openFilter === "category" ? null : "category")}
             >
-              🔍
+              Category
+              {selectedCategories.size < allCategories.length && (
+                <span className="filter-chip-count">{selectedCategories.size}</span>
+              )}
             </button>
             <button
-              className={`icon-btn ${filtersOpen ? "active" : ""}`}
-              title="Filter"
-              onClick={() => {
-                setFiltersOpen((v) => !v)
-                setOpenFilter(null)
-              }}
+              className={`filter-chip ${selectedAccess.size < 2 ? "active" : ""}`}
+              onClick={() => setOpenFilter(openFilter === "access" ? null : "access")}
             >
-              🎚️
+              Access
+              {selectedAccess.size < 2 && <span className="filter-chip-count">{selectedAccess.size}</span>}
             </button>
           </div>
 
-          {searchOpen && (
-            <div className="header">
-              <input
-                className="search"
-                placeholder="Search components…"
-                autoFocus
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          )}
-
-          {filtersOpen && (
+          {openFilter && (
             <>
-              <div className="filter-row">
-                <button
-                  className={`filter-chip ${selectedCategories.size < allCategories.length ? "active" : ""}`}
-                  onClick={() => setOpenFilter(openFilter === "category" ? null : "category")}
-                >
-                  Category
-                  {selectedCategories.size < allCategories.length && (
-                    <span className="filter-chip-count">{selectedCategories.size}</span>
-                  )}
-                </button>
-                <button
-                  className={`filter-chip ${selectedAccess.size < 2 ? "active" : ""}`}
-                  onClick={() => setOpenFilter(openFilter === "access" ? null : "access")}
-                >
-                  Access
-                  {selectedAccess.size < 2 && <span className="filter-chip-count">{selectedAccess.size}</span>}
-                </button>
+              <div className="filter-dropdown-backdrop" onClick={() => setOpenFilter(null)} />
+              <div className="filter-dropdown">
+                {openFilter === "category"
+                  ? allCategories.map((cat) => (
+                      <label key={cat} className="filter-option">
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories.has(cat)}
+                          onChange={() => toggleCategory(cat)}
+                        />
+                        {cat}
+                      </label>
+                    ))
+                  : (["free", "pro"] as const).map((access) => (
+                      <label key={access} className="filter-option">
+                        <input
+                          type="checkbox"
+                          checked={selectedAccess.has(access)}
+                          onChange={() => toggleAccess(access)}
+                        />
+                        {access === "free" ? "Free" : "Pro"}
+                      </label>
+                    ))}
               </div>
-
-              {openFilter === "category" && (
-                <div className="filter-dropdown">
-                  {allCategories.map((cat) => (
-                    <label key={cat} className="filter-option">
-                      <input
-                        type="checkbox"
-                        checked={selectedCategories.has(cat)}
-                        onChange={() => toggleCategory(cat)}
-                      />
-                      {cat}
-                    </label>
-                  ))}
-                </div>
-              )}
-              {openFilter === "access" && (
-                <div className="filter-dropdown">
-                  <label className="filter-option">
-                    <input
-                      type="checkbox"
-                      checked={selectedAccess.has("free")}
-                      onChange={() => toggleAccess("free")}
-                    />
-                    Free
-                  </label>
-                  <label className="filter-option">
-                    <input type="checkbox" checked={selectedAccess.has("pro")} onChange={() => toggleAccess("pro")} />
-                    Pro
-                  </label>
-                </div>
-              )}
             </>
           )}
-
-          <div className="list">
-            {loadError ? (
-              <div className="empty">{loadError}</div>
-            ) : !components ? (
-              Array.from({ length: 6 }).map((_, i) => <div key={i} className="card skeleton" />)
-            ) : items.length === 0 ? (
-              <div className="empty">No components match your search.</div>
-            ) : (
-              items.map((c) => (
-                <GalleryCard
-                  key={c.id}
-                  component={c}
-                  busy={busyId === c.id}
-                  locked={!!(c.is_pro && isPro === false)}
-                  warmed={warmedFiles.has(c.file_name)}
-                  onOpenDetail={() => setDetailComponent(c)}
-                  onSave={() => setSavingComponent(c)}
-                />
-              ))
-            )}
-          </div>
-        </>
+        </div>
       )}
+
+      <div className="list">
+        {loadError ? (
+          <div className="empty">{loadError}</div>
+        ) : !components ? (
+          Array.from({ length: 6 }).map((_, i) => <div key={i} className="card skeleton" />)
+        ) : items.length === 0 ? (
+          <div className="empty">No components match your search.</div>
+        ) : (
+          items.map((c) => (
+            <GalleryCard
+              key={c.id}
+              component={c}
+              busy={busyId === c.id}
+              locked={!!(c.is_pro && isPro === false)}
+              warmed={warmedFiles.has(c.file_name)}
+              onOpenDetail={() => setDetailComponent(c)}
+              onSave={() => setSavingComponent(c)}
+            />
+          ))
+        )}
+      </div>
 
       <div className={`toast ${toast ? "show" : ""}`}>{toast}</div>
 

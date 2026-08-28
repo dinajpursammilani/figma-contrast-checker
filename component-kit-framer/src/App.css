@@ -158,7 +158,8 @@ body {
 .browse-back:hover { color: var(--text) !important; }
 .browse-search { flex: 1 !important; }
 
-.filter-row { display: flex; gap: 6px; padding: 8px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.filter-row-wrap { position: relative; flex-shrink: 0; }
+.filter-row { display: flex; gap: 6px; padding: 8px 16px; border-bottom: 1px solid var(--border); }
 .filter-chip {
   all: unset;
   box-sizing: border-box !important;
@@ -188,9 +189,11 @@ body {
 .icon-btn.active { color: var(--accent) !important; background: var(--accent-soft) !important; }
 .icon-btn:hover { color: var(--text) !important; }
 
+.filter-dropdown-backdrop { position: fixed; inset: 0; z-index: 40; }
 .filter-dropdown {
-  display: flex; flex-direction: column; gap: 2px; padding: 8px 16px; border-bottom: 1px solid var(--border);
-  flex-shrink: 0; background: var(--bg-subtle);
+  position: absolute; top: 100%; left: 16px; right: 16px; z-index: 41; margin-top: 4px;
+  display: flex; flex-direction: column; gap: 2px; padding: 8px; border-radius: 10px;
+  background: var(--card-bg); border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.25);
 }
 .filter-option {
   display: flex; align-items: center; gap: 8px; padding: 6px 4px; font-size: 12px; color: var(--text);
