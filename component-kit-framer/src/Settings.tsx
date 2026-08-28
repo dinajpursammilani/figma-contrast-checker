@@ -26,6 +26,18 @@ export default function Settings({
 
   useEffect(() => {
     getProStatus(user.id).then(setIsPro)
+
+    // Payment happens in a separate browser tab, so there's no way to push the result back in —
+    // instead, refetch whenever the user switches focus back to Framer after checking out.
+    function refetch() {
+      if (document.visibilityState === "visible") getProStatus(user.id).then(setIsPro)
+    }
+    document.addEventListener("visibilitychange", refetch)
+    window.addEventListener("focus", refetch)
+    return () => {
+      document.removeEventListener("visibilitychange", refetch)
+      window.removeEventListener("focus", refetch)
+    }
   }, [user.id])
 
   async function handleUpgrade() {
@@ -69,7 +81,7 @@ export default function Settings({
         )}
         {checkoutError && <p className="settings-muted">{checkoutError}</p>}
         {isPro === false && (
-          <p className="settings-muted">Checkout opens in your browser — come back and reopen the plugin once you're done.</p>
+          <p className="settings-muted">Checkout opens in your browser — once you're done, switch back to Framer and this updates automatically.</p>
         )}
       </div>
 
