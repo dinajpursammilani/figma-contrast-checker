@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { User } from "@supabase/supabase-js"
-import { Draggable } from "@framer/plugin"
+import { useMakeDraggable } from "@framer/plugin"
 import { insertComponent, warmInsertUrl, getCachedInsertUrl } from "./nodeBuilders"
 import { restoreSession } from "./lib/auth"
 import { getData, setDataInBackground } from "./lib/pluginStorage"
@@ -276,59 +276,17 @@ function Gallery({ user }: { user: User }) {
         ) : items.length === 0 ? (
           <div className="empty">No components match your search.</div>
         ) : (
-          items.map((c) => {
-            const locked = c.is_pro && isPro === false
-            const card = (
-              <div className={`card ${busyId === c.id ? "busy" : ""} ${locked ? "locked" : ""}`} onClick={() => setDetailComponent(c)}>
-                <div className="preview" dangerouslySetInnerHTML={{ __html: c.preview_svg }} />
-                {locked && (
-                  <div className="preview-lock">
-                    <div className="preview-lock-icon">🔒</div>
-                  </div>
-                )}
-                <button
-                  className="save-btn"
-                  title="Save to boards"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSavingComponent(c)
-                  }}
-                >
-                  🔖 Save
-                </button>
-                <div className="card-footer">
-                  <span className="card-name">
-                    {c.name}
-                    {c.is_pro && <span className="pro-badge">PRO</span>}
-                  </span>
-                  {locked ? (
-                    <span className="locked-hint">Tap to unlock</span>
-                  ) : (
-                    <span className="insert-hint">
-                      {busyId === c.id ? "Inserting…" : warmedFiles.has(c.file_name) ? "Drag to insert" : "Loading…"}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )
-
-            if (!warmedFiles.has(c.file_name)) {
-              return <div key={c.id}>{card}</div>
-            }
-
-            return (
-              <Draggable
-                key={c.id}
-                data={() => ({
-                  type: "componentInstance",
-                  url: getCachedInsertUrl(c.file_name) ?? "",
-                  name: c.name,
-                })}
-              >
-                {card}
-              </Draggable>
-            )
-          })
+          items.map((c) => (
+            <GalleryCard
+              key={c.id}
+              component={c}
+              busy={busyId === c.id}
+              locked={!!(c.is_pro && isPro === false)}
+              warmed={warmedFiles.has(c.file_name)}
+              onOpenDetail={() => setDetailComponent(c)}
+              onSave={() => setSavingComponent(c)}
+            />
+          ))
         )}
       </div>
 
@@ -356,6 +314,69 @@ function Gallery({ user }: { user: User }) {
           }}
         />
       )}
+    </div>
+  )
+}
+
+/** Drag is attached only to the preview thumbnail via a ref, not the whole card — wrapping the
+ * entire card (footer, badges, buttons and all) in Framer's <Draggable> caused the rest of the
+ * card to visually collapse a few seconds after it became draggable (name/footer disappearing,
+ * card shrinking) for reasons that live inside Framer's own closed-source drag setup. Scoping
+ * the ref to just the thumbnail keeps whatever that side effect is contained to a disposable
+ * sub-element instead of the card's real content — and matches how people expect to drag a
+ * thumbnail anyway, not by grabbing the label underneath it. */
+function GalleryCard({
+  component,
+  busy,
+  locked,
+  warmed,
+  onOpenDetail,
+  onSave,
+}: {
+  component: ComponentRow
+  busy: boolean
+  locked: boolean
+  warmed: boolean
+  onOpenDetail: () => void
+  onSave: () => void
+}) {
+  const previewRef = useRef<HTMLDivElement>(null)
+
+  useMakeDraggable(previewRef, () => ({
+    type: "componentInstance",
+    url: getCachedInsertUrl(component.file_name) ?? "",
+    name: component.name,
+  }))
+
+  return (
+    <div className={`card ${busy ? "busy" : ""} ${locked ? "locked" : ""}`} onClick={onOpenDetail}>
+      <div ref={previewRef} className="preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
+      {locked && (
+        <div className="preview-lock">
+          <div className="preview-lock-icon">🔒</div>
+        </div>
+      )}
+      <button
+        className="save-btn"
+        title="Save to boards"
+        onClick={(e) => {
+          e.stopPropagation()
+          onSave()
+        }}
+      >
+        🔖 Save
+      </button>
+      <div className="card-footer">
+        <span className="card-name">
+          {component.name}
+          {component.is_pro && <span className="pro-badge">PRO</span>}
+        </span>
+        {locked ? (
+          <span className="locked-hint">Tap to unlock</span>
+        ) : (
+          <span className="insert-hint">{busy ? "Inserting…" : warmed ? "Drag to insert" : "Loading…"}</span>
+        )}
+      </div>
     </div>
   )
 }
