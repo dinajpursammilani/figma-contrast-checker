@@ -1,50 +1,18 @@
 * { box-sizing: border-box; }
 :root {
-  --bg: #ffffff;
-  --bg-subtle: #f6f6f7;
-  --card-bg: #fafafa;
-  --text: #17171a;
-  --text-muted: #6f6f75;
-  --border: #e8e8ea;
-  --accent: #4a5aff;
-  --accent-soft: #eceeff;
+  /* Aliased to Framer's own live-injected theme variables (confirmed real via framer.css's
+     own unfallbacked var(--framer-color-bg-tertiary) usage) instead of guessing light/dark
+     ourselves — data-framer-theme and prefers-color-scheme both proved unreliable signals
+     inside the plugin iframe. This always matches Framer's actual current theme, live. */
+  --bg: var(--framer-color-bg, #ffffff);
+  --bg-subtle: var(--framer-color-bg-secondary, #f6f6f7);
+  --card-bg: var(--framer-color-bg-secondary, #fafafa);
+  --text: var(--framer-color-text, #17171a);
+  --text-muted: var(--framer-color-text-secondary, #6f6f75);
+  --border: var(--framer-color-divider, #e8e8ea);
+  --accent: var(--framer-color-tint, #4a5aff);
+  --accent-soft: var(--framer-color-tint-dimmed, #eceeff);
   --danger: #d5372c;
-}
-
-/* Framer sets [data-framer-theme] on this document when the user's Framer theme is dark —
-   confirmed by inspecting framer.css's own `[data-framer-theme="dark"] input` rule. Falling
-   back to prefers-color-scheme in case that attribute isn't present in some contexts. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #232325;
-    --bg-subtle: #1c1c1e;
-    --card-bg: #2a2a2d;
-    --text: #f1f1f2;
-    --text-muted: #a3a3a7;
-    --border: #38383b;
-    --accent: #8b93ff;
-    --accent-soft: #2a2b4d;
-  }
-}
-:root[data-framer-theme="dark"] {
-  --bg: #232325;
-  --bg-subtle: #1c1c1e;
-  --card-bg: #2a2a2d;
-  --text: #f1f1f2;
-  --text-muted: #a3a3a7;
-  --border: #38383b;
-  --accent: #8b93ff;
-  --accent-soft: #2a2b4d;
-}
-:root[data-framer-theme="light"] {
-  --bg: #ffffff;
-  --bg-subtle: #f6f6f7;
-  --card-bg: #fafafa;
-  --text: #17171a;
-  --text-muted: #6f6f75;
-  --border: #e8e8ea;
-  --accent: #4a5aff;
-  --accent-soft: #eceeff;
 }
 
 html, body, #root { height: 100%; margin: 0; }
