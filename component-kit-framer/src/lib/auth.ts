@@ -1,6 +1,7 @@
 import type { Session, User } from "@supabase/supabase-js"
 import { supabase } from "./supabase"
 import { getData, setDataInBackground } from "./pluginStorage"
+import { saveFullName } from "./profile"
 
 const SESSION_KEY = "supabase-session"
 const AUTH_TIMEOUT_MS = 10000
@@ -46,10 +47,17 @@ export async function restoreSession(): Promise<User | null> {
   }
 }
 
-export async function signUp(email: string, password: string): Promise<{ user: User | null; error: string | null }> {
+export async function signUp(
+  email: string,
+  password: string,
+  fullName: string
+): Promise<{ user: User | null; error: string | null }> {
   const { data, error } = await withAuthTimeout(supabase.auth.signUp({ email, password }))
   if (error) return { user: null, error: error.message }
   if (data.session) persistSessionInBackground(data.session)
+  // The profiles row is created by a DB trigger the instant auth.users gets the new row, so
+  // it already exists here — safe to save the name right away, no race condition.
+  if (data.user) await saveFullName(data.user.id, fullName)
   return { user: data.user, error: null }
 }
 

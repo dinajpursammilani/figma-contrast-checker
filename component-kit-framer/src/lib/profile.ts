@@ -36,6 +36,17 @@ export async function getFullName(userId: string): Promise<string | null> {
   return data?.full_name ?? null
 }
 
+export async function saveFullName(userId: string, fullName: string): Promise<void> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ full_name: fullName, updated_at: new Date().toISOString() })
+    .eq("id", userId)
+
+  if (error) {
+    console.warn("Failed to save full name:", error.message)
+  }
+}
+
 /** Falls back to a cleaned-up guess from the email's local part when no name is set yet —
  * e.g. "jordan.lee92@gmail.com" -> "Jordan". Replaced once a real account page lets users
  * set their actual name. */

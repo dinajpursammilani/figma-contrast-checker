@@ -4,6 +4,7 @@ import type { User } from "@supabase/supabase-js"
 
 export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void }) {
   const [mode, setMode] = useState<"signin" | "signup">("signin")
+  const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -15,7 +16,7 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
     setBusy(true)
 
     try {
-      const result = mode === "signin" ? await signIn(email, password) : await signUp(email, password)
+      const result = mode === "signin" ? await signIn(email, password) : await signUp(email, password, fullName.trim())
 
       if (result.error) {
         setError(result.error)
@@ -42,6 +43,16 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
       </div>
 
       <form className="login-form" onSubmit={handleSubmit}>
+        {mode === "signup" && (
+          <input
+            className="search"
+            type="text"
+            placeholder="Your name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
+          />
+        )}
         <input
           className="search"
           type="email"
