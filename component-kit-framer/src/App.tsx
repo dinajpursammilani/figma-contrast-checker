@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import type { User } from "@supabase/supabase-js"
-import { Draggable, framer } from "@framer/plugin"
+import { Draggable } from "@framer/plugin"
 import { insertComponent, warmInsertUrl, getCachedInsertUrl } from "./nodeBuilders"
 import { restoreSession } from "./lib/auth"
 import { getData, setDataInBackground } from "./lib/pluginStorage"
@@ -135,6 +135,7 @@ function Gallery({ user }: { user: User }) {
   const [toast, setToast] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [savingComponent, setSavingComponent] = useState<ComponentRow | null>(null)
+  const [detailComponent, setDetailComponent] = useState<ComponentRow | null>(null)
   const [greetingName, setGreetingName] = useState<string>(user.email ? friendlyNameFromEmail(user.email) : "there")
   const [warmedFiles, setWarmedFiles] = useState<Set<string>>(new Set())
 
@@ -200,16 +201,6 @@ function Gallery({ user }: { user: User }) {
 
   return (
     <div className="app">
-      <div
-        style={{
-          position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
-          background: "red", color: "white", fontSize: 10, padding: "2px 6px",
-          fontFamily: "monospace",
-        }}
-      >
-        makeDraggable allowed: {String(framer.isAllowedTo("makeDraggable"))} | mode: {framer.mode}
-      </div>
-
       <div className="greeting">
         <div className="greeting-title">Hey, {greetingName}</div>
         <div className="greeting-subtitle">What will you build today?</div>
@@ -246,7 +237,7 @@ function Gallery({ user }: { user: User }) {
         ) : (
           items.map((c) => {
             const card = (
-              <div className={`card ${busyId === c.id ? "busy" : ""}`} onClick={() => handleInsert(c)}>
+              <div className={`card ${busyId === c.id ? "busy" : ""}`} onClick={() => setDetailComponent(c)}>
                 <div className="preview" dangerouslySetInnerHTML={{ __html: c.preview_svg }} />
                 <button
                   className="save-btn"
@@ -264,7 +255,7 @@ function Gallery({ user }: { user: User }) {
                     {c.is_pro && <span className="pro-badge">PRO</span>}
                   </span>
                   <span className="insert-hint">
-                    {busyId === c.id ? "Inserting…" : warmedFiles.has(c.file_name) ? "Drag or click →" : "Insert →"}
+                    {busyId === c.id ? "Inserting…" : warmedFiles.has(c.file_name) ? "Drag to insert" : "Loading…"}
                   </span>
                 </div>
               </div>
@@ -299,6 +290,61 @@ function Gallery({ user }: { user: User }) {
           onClose={() => setSavingComponent(null)}
         />
       )}
+
+      {detailComponent && (
+        <ComponentDetail
+          component={detailComponent}
+          busy={busyId === detailComponent.id}
+          onClose={() => setDetailComponent(null)}
+          onInsert={() => handleInsert(detailComponent)}
+          onSave={() => {
+            setSavingComponent(detailComponent)
+            setDetailComponent(null)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function ComponentDetail({
+  component,
+  busy,
+  onClose,
+  onInsert,
+  onSave,
+}: {
+  component: ComponentRow
+  busy: boolean
+  onClose: () => void
+  onInsert: () => void
+  onSave: () => void
+}) {
+  return (
+    <div className="drawer-backdrop" onClick={onClose}>
+      <div className="drawer detail-drawer" onClick={(e) => e.stopPropagation()}>
+        <div className="drawer-handle" />
+        <div className="detail-preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
+        <div className="detail-title-row">
+          <span className="drawer-title">{component.name}</span>
+          {component.is_pro && <span className="pro-badge">PRO</span>}
+        </div>
+        <div className="detail-category">{component.category}</div>
+
+        <div className="detail-actions">
+          <button className="detail-save-btn" onClick={onSave}>
+            🔖 Save
+          </button>
+          <button className="detail-insert-btn" onClick={onInsert} disabled={busy}>
+            {busy ? "Inserting…" : "Insert"}
+          </button>
+        </div>
+        <div className="detail-hint">Or drag the card straight onto the canvas.</div>
+
+        <button className="drawer-done" onClick={onClose}>
+          Close
+        </button>
+      </div>
     </div>
   )
 }
