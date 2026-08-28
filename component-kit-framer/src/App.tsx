@@ -279,8 +279,13 @@ function Gallery({ user }: { user: User }) {
           items.map((c) => {
             const locked = c.is_pro && isPro === false
             const card = (
-              <div className={`card ${busyId === c.id ? "busy" : ""}`} onClick={() => setDetailComponent(c)}>
+              <div className={`card ${busyId === c.id ? "busy" : ""} ${locked ? "locked" : ""}`} onClick={() => setDetailComponent(c)}>
                 <div className="preview" dangerouslySetInnerHTML={{ __html: c.preview_svg }} />
+                {locked && (
+                  <div className="preview-lock">
+                    <div className="preview-lock-icon">🔒</div>
+                  </div>
+                )}
                 <button
                   className="save-btn"
                   title="Save to boards"
@@ -296,15 +301,13 @@ function Gallery({ user }: { user: User }) {
                     {c.name}
                     {c.is_pro && <span className="pro-badge">PRO</span>}
                   </span>
-                  <span className="insert-hint">
-                    {busyId === c.id
-                      ? "Inserting…"
-                      : locked
-                        ? "Upgrade to unlock"
-                        : warmedFiles.has(c.file_name)
-                          ? "Drag to insert"
-                          : "Loading…"}
-                  </span>
+                  {locked ? (
+                    <span className="locked-hint">Tap to unlock</span>
+                  ) : (
+                    <span className="insert-hint">
+                      {busyId === c.id ? "Inserting…" : warmedFiles.has(c.file_name) ? "Drag to insert" : "Loading…"}
+                    </span>
+                  )}
                 </div>
               </div>
             )
@@ -378,7 +381,10 @@ function ComponentDetail({
     <div className="drawer-backdrop" onClick={onClose}>
       <div className="drawer detail-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="drawer-handle" />
-        <div className="detail-preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
+        <div
+          className={`detail-preview ${locked ? "detail-preview-locked" : ""}`}
+          dangerouslySetInnerHTML={{ __html: component.preview_svg }}
+        />
         <div className="detail-title-row">
           <span className="drawer-title">{component.name}</span>
           {component.is_pro && <span className="pro-badge">PRO</span>}
@@ -391,7 +397,7 @@ function ComponentDetail({
               <button className="detail-save-btn" onClick={onSave}>
                 🔖 Save
               </button>
-              <button className="detail-insert-btn" onClick={onUpgrade}>
+              <button className="detail-insert-btn detail-upgrade-btn" onClick={onUpgrade}>
                 Upgrade to Pro →
               </button>
             </div>
