@@ -437,6 +437,8 @@ body {
 
 /* ---- Colors tool ---- */
 
+.colors-scroll { flex: 1; overflow-y: auto; padding-bottom: 18px; }
+
 .colors-picker-row { display: flex; gap: 8px; padding: 0 18px 4px; }
 .colors-swatch-input {
   width: 44px; height: 40px; padding: 0; border: 1px solid var(--border); border-radius: 8px;

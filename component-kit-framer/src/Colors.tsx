@@ -83,82 +83,84 @@ export default function Colors() {
         <div className="greeting-subtitle">Generate a scale, apply it straight to the canvas.</div>
       </div>
 
-      <div className="colors-picker-row">
-        <input
-          type="color"
-          className="colors-swatch-input"
-          value={baseColor}
-          onChange={(e) => setBaseColor(e.target.value)}
-        />
-        <input
-          className="search colors-hex-input"
-          value={baseColor}
-          onChange={(e) => setBaseColor(e.target.value)}
-          spellCheck={false}
-        />
-      </div>
+      <div className="colors-scroll">
+        <div className="colors-picker-row">
+          <input
+            type="color"
+            className="colors-swatch-input"
+            value={baseColor}
+            onChange={(e) => setBaseColor(e.target.value)}
+          />
+          <input
+            className="search colors-hex-input"
+            value={baseColor}
+            onChange={(e) => setBaseColor(e.target.value)}
+            spellCheck={false}
+          />
+        </div>
 
-      <div className="colors-scale">
-        {scale.map(({ step, hex }) => (
-          <div key={step} className="colors-scale-row" style={{ background: hex, color: readableTextColor(hex) }}>
-            <span className="colors-scale-step">{step}</span>
-            <span className="colors-scale-hex">{hex}</span>
-            <div className="colors-scale-actions">
-              <button className="colors-scale-btn" onClick={() => handleCopy(hex)} style={{ color: readableTextColor(hex) }}>
-                Copy
-              </button>
-              <button
-                className="colors-scale-btn"
-                onClick={() => handleApply(hex)}
-                disabled={applyingHex === hex}
-                style={{ color: readableTextColor(hex) }}
-              >
-                {applyingHex === hex ? "Applying…" : "Apply →"}
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="colors-save-row">
-        <input
-          className="search"
-          placeholder="Save this scale as…"
-          value={saveName}
-          onChange={(e) => setSaveName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSavePalette()}
-        />
-        <button className="boards-create-btn" disabled={!saveName.trim() || saving} onClick={handleSavePalette}>
-          {saving ? "…" : "Save"}
-        </button>
-      </div>
-
-      {palettes && palettes.length > 0 && (
-        <div className="colors-saved">
-          <div className="greeting-title" style={{ fontSize: 15 }}>
-            Saved palettes
-          </div>
-          {palettes.map((p) => (
-            <div key={p.id} className="colors-saved-row">
-              <div className="colors-saved-swatches">
-                {p.colors.map((hex, i) => (
-                  <button
-                    key={i}
-                    className="colors-saved-swatch"
-                    style={{ background: hex }}
-                    title={hex}
-                    onClick={() => setBaseColor(p.colors[Math.floor(p.colors.length / 2)] ?? hex)}
-                  />
-                ))}
+        <div className="colors-scale">
+          {scale.map(({ step, hex }) => (
+            <div key={step} className="colors-scale-row" style={{ background: hex, color: readableTextColor(hex) }}>
+              <span className="colors-scale-step">{step}</span>
+              <span className="colors-scale-hex">{hex}</span>
+              <div className="colors-scale-actions">
+                <button className="colors-scale-btn" onClick={() => handleCopy(hex)} style={{ color: readableTextColor(hex) }}>
+                  Copy
+                </button>
+                <button
+                  className="colors-scale-btn"
+                  onClick={() => handleApply(hex)}
+                  disabled={applyingHex === hex}
+                  style={{ color: readableTextColor(hex) }}
+                >
+                  {applyingHex === hex ? "Applying…" : "Apply →"}
+                </button>
               </div>
-              <span className="colors-saved-name">{p.name}</span>
-              <button className="unsave-btn" onClick={() => handleDeletePalette(p)}>
-                ✕
-              </button>
             </div>
           ))}
         </div>
-      )}
+
+        <div className="colors-save-row">
+          <input
+            className="search"
+            placeholder="Save this scale as…"
+            value={saveName}
+            onChange={(e) => setSaveName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSavePalette()}
+          />
+          <button className="boards-create-btn" disabled={!saveName.trim() || saving} onClick={handleSavePalette}>
+            {saving ? "…" : "Save"}
+          </button>
+        </div>
+
+        {palettes && palettes.length > 0 && (
+          <div className="colors-saved">
+            <div className="greeting-title" style={{ fontSize: 15 }}>
+              Saved palettes
+            </div>
+            {palettes.map((p) => (
+              <div key={p.id} className="colors-saved-row">
+                <div className="colors-saved-swatches">
+                  {p.colors.map((hex, i) => (
+                    <button
+                      key={i}
+                      className="colors-saved-swatch"
+                      style={{ background: hex }}
+                      title={hex}
+                      onClick={() => setBaseColor(p.colors[Math.floor(p.colors.length / 2)] ?? hex)}
+                    />
+                  ))}
+                </div>
+                <span className="colors-saved-name">{p.name}</span>
+                <button className="unsave-btn" onClick={() => handleDeletePalette(p)}>
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className={`toast ${toast ? "show" : ""}`}>{toast}</div>
     </div>

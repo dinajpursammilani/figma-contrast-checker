@@ -6,6 +6,12 @@ async function getInsertUrl(fileName: string, tsxSource: string): Promise<string
   const cached = insertUrlCache.get(fileName)
   if (cached) return cached
 
+  if (!framer.isAllowedTo("createCodeFile", "addComponentInstance")) {
+    throw new Error(
+      "This Framer workspace/plan doesn't allow plugins to create code components. This isn't a bug in the plugin — it's a permission gate on the workspace."
+    )
+  }
+
   // Reuse the code file across sessions/reloads instead of creating a duplicate every time.
   // If it already exists but the catalog's source has since changed, sync it — otherwise a
   // stale version would keep getting inserted.
@@ -26,12 +32,6 @@ async function getInsertUrl(fileName: string, tsxSource: string): Promise<string
 }
 
 export async function insertComponent(fileName: string, tsxSource: string) {
-  if (!framer.isAllowedTo("createCodeFile", "addComponentInstance")) {
-    throw new Error(
-      "This Framer workspace/plan doesn't allow plugins to create code components. This isn't a bug in the plugin — it's a permission gate on the workspace."
-    )
-  }
-
   const url = await getInsertUrl(fileName, tsxSource)
 
   // Inserted as a linked instance, not detached layers. Confirmed (both by testing and by
