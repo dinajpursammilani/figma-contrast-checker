@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { insertComponent } from "./nodeBuilders"
 import { fetchComponentSource } from "./lib/componentSource"
+import { LockIcon } from "./icons"
 import { getProStatus } from "./lib/payments"
 import {
   fetchBoards,
@@ -126,7 +127,7 @@ export default function Boards() {
           <div className="preview" dangerouslySetInnerHTML={{ __html: item.component.preview_svg }} />
           {locked && (
             <div className="preview-lock">
-              <div className="preview-lock-icon">🔒</div>
+              <div className="preview-lock-icon"><LockIcon /></div>
             </div>
           )}
           <button

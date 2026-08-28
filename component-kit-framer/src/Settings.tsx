@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import { signOut } from "./lib/auth"
 import { getProStatus, startCheckout } from "./lib/payments"
+import { MoonIcon, SunIcon } from "./icons"
 
 type ThemePref = "light" | "dark"
 
@@ -90,7 +91,7 @@ export default function Settings({
         <div className="settings-row">
           <span>Theme</span>
           <button className="settings-toggle" onClick={onToggleTheme}>
-            {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
+            {theme === "dark" ? <MoonIcon /> : <SunIcon />} {theme === "dark" ? "Dark" : "Light"}
           </button>
         </div>
       </div>

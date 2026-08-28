@@ -14,6 +14,19 @@ import Settings from "./Settings"
 import Boards from "./Boards"
 import Colors from "./Colors"
 import SaveDrawer from "./SaveDrawer"
+import {
+  HomeIcon,
+  LayersIcon,
+  BookmarkIcon,
+  PaletteIcon,
+  SettingsIcon,
+  SearchIcon,
+  SlidersIcon,
+  LockIcon,
+  SparkleIcon,
+  CloseIcon,
+  categoryIconFor,
+} from "./icons"
 
 function DragHandleIcon() {
   return (
@@ -26,19 +39,6 @@ function DragHandleIcon() {
       <circle cx="10" cy="11" r="1.3" />
     </svg>
   )
-}
-
-function categoryIcon(category: string): string {
-  switch (category) {
-    case "Sections":
-      return "🧩"
-    case "Navigation":
-      return "🧭"
-    case "Cards":
-      return "🗂️"
-    default:
-      return "✨"
-  }
 }
 
 const THEME_KEY = "theme-preference"
@@ -204,19 +204,24 @@ function Shell({
       </div>
       <div className="bottom-nav">
         <button className={`nav-btn ${view === "home" ? "active" : ""}`} onClick={() => setView("home")}>
-          🏠 Home
+          <HomeIcon />
+          <span>Home</span>
         </button>
         <button className={`nav-btn ${view === "build" ? "active" : ""}`} onClick={() => openBuild(null)}>
-          🧱 Build
+          <LayersIcon />
+          <span>Build</span>
         </button>
         <button className={`nav-btn ${view === "boards" ? "active" : ""}`} onClick={() => setView("boards")}>
-          🔖 Boards
+          <BookmarkIcon />
+          <span>Boards</span>
         </button>
         <button className={`nav-btn ${view === "colors" ? "active" : ""}`} onClick={() => setView("colors")}>
-          🎨 Colors
+          <PaletteIcon />
+          <span>Colors</span>
         </button>
         <button className={`nav-btn ${view === "settings" ? "active" : ""}`} onClick={() => setView("settings")}>
-          ⚙️ Settings
+          <SettingsIcon />
+          <span>Settings</span>
         </button>
       </div>
     </div>
@@ -256,18 +261,25 @@ function Home({
 
       <div className="tiles">
         <button className="tile tile-browse" onClick={() => onOpenCategory(null)}>
-          <div className="tile-icon">✨</div>
+          <div className="tile-icon">
+            <SparkleIcon />
+          </div>
           <div className="tile-name">Browse all</div>
           <div className="tile-count">{components ? `${components.length} components` : "…"}</div>
         </button>
 
-        {categoryCounts.map(([category, count]) => (
-          <button key={category} className="tile" onClick={() => onOpenCategory(category)}>
-            <div className="tile-icon">{categoryIcon(category)}</div>
-            <div className="tile-name">{category}</div>
-            <div className="tile-count">{count} components</div>
-          </button>
-        ))}
+        {categoryCounts.map(([category, count]) => {
+          const CategoryIcon = categoryIconFor(category)
+          return (
+            <button key={category} className="tile" onClick={() => onOpenCategory(category)}>
+              <div className="tile-icon">
+                <CategoryIcon />
+              </div>
+              <div className="tile-name">{category}</div>
+              <div className="tile-count">{count} components</div>
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -297,6 +309,16 @@ function Browse({
   const [selectedAccess, setSelectedAccess] = useState<Set<"free" | "pro">>(new Set(["free", "pro"]))
   const [openFilter, setOpenFilter] = useState<"category" | "access" | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus()
+  }, [searchOpen])
+
+  function closeSearch() {
+    setSearchOpen(false)
+    setSearchTerm("")
+  }
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [toast, setToast] = useState<string | null>(null)
@@ -373,13 +395,23 @@ function Browse({
   return (
     <div className="app">
       <div className="browse-header">
-        <span className="browse-header-spacer" />
+        <div className={`search-inline-wrap ${searchOpen ? "open" : ""}`}>
+          <input
+            ref={searchInputRef}
+            className="search-inline-input"
+            placeholder="Search components…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => e.key === "Escape" && closeSearch()}
+          />
+        </div>
+        {!searchOpen && <span className="browse-header-spacer" />}
         <button
           className={`icon-btn ${searchOpen ? "active" : ""}`}
           title="Search"
-          onClick={() => setSearchOpen((v) => !v)}
+          onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
         >
-          🔍
+          {searchOpen ? <CloseIcon /> : <SearchIcon />}
         </button>
         <button
           className={`icon-btn ${filtersOpen ? "active" : ""}`}
@@ -389,21 +421,9 @@ function Browse({
             setOpenFilter(null)
           }}
         >
-          🎚️
+          <SlidersIcon />
         </button>
       </div>
-
-      {searchOpen && (
-        <div className="header">
-          <input
-            className="search"
-            placeholder="Search components…"
-            autoFocus
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      )}
 
       {filtersOpen && (
         <div className="filter-row-wrap">
@@ -543,7 +563,7 @@ function GalleryCard({
         <div ref={previewRef} className="preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
         {locked && (
           <div className="preview-lock">
-            <div className="preview-lock-icon">🔒</div>
+            <div className="preview-lock-icon"><LockIcon /></div>
           </div>
         )}
       </div>
@@ -555,7 +575,7 @@ function GalleryCard({
           onSave()
         }}
       >
-        🔖 Save
+        <BookmarkIcon /> Save
       </button>
       <div className="card-footer">
         <span className="card-name">
@@ -599,7 +619,7 @@ function ComponentDetail({
           <div className="detail-preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
           {locked && (
             <div className="preview-lock detail-preview-lock">
-              <div className="preview-lock-icon">🔒</div>
+              <div className="preview-lock-icon"><LockIcon /></div>
             </div>
           )}
         </div>
@@ -613,7 +633,7 @@ function ComponentDetail({
           <>
             <div className="detail-actions">
               <button className="detail-save-btn" onClick={onSave}>
-                🔖 Save
+                <BookmarkIcon /> Save
               </button>
               <button className="detail-insert-btn detail-upgrade-btn" onClick={onUpgrade}>
                 Upgrade to Pro →
@@ -625,7 +645,7 @@ function ComponentDetail({
           <>
             <div className="detail-actions">
               <button className="detail-save-btn" onClick={onSave}>
-                🔖 Save
+                <BookmarkIcon /> Save
               </button>
               <button className="detail-insert-btn" onClick={onInsert} disabled={busy}>
                 {busy ? "Inserting…" : "Insert"}
