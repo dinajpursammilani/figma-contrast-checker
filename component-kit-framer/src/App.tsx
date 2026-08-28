@@ -12,6 +12,7 @@ import Login from "./Login"
 import Onboarding from "./Onboarding"
 import Settings from "./Settings"
 import Boards from "./Boards"
+import Colors from "./Colors"
 import SaveDrawer from "./SaveDrawer"
 
 const THEME_KEY = "theme-preference"
@@ -103,13 +104,14 @@ function Shell({
   theme: ThemePref
   onToggleTheme: () => void
 }) {
-  const [view, setView] = useState<"home" | "boards" | "settings">("home")
+  const [view, setView] = useState<"home" | "boards" | "colors" | "settings">("home")
 
   return (
     <div className="shell">
       <div className="shell-content">
         {view === "home" && <Gallery user={user} />}
         {view === "boards" && <Boards />}
+        {view === "colors" && <Colors />}
         {view === "settings" && (
           <Settings user={user} theme={theme} onToggleTheme={onToggleTheme} onLogOut={onLogOut} />
         )}
@@ -120,6 +122,9 @@ function Shell({
         </button>
         <button className={`nav-btn ${view === "boards" ? "active" : ""}`} onClick={() => setView("boards")}>
           🔖 Boards
+        </button>
+        <button className={`nav-btn ${view === "colors" ? "active" : ""}`} onClick={() => setView("colors")}>
+          🎨 Colors
         </button>
         <button className={`nav-btn ${view === "settings" ? "active" : ""}`} onClick={() => setView("settings")}>
           ⚙️ Settings

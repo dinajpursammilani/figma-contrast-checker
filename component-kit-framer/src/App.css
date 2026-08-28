@@ -434,3 +434,47 @@ body {
   padding: 2px 4px !important;
 }
 .unsave-btn:hover { color: var(--danger) !important; }
+
+/* ---- Colors tool ---- */
+
+.colors-picker-row { display: flex; gap: 8px; padding: 0 18px 4px; }
+.colors-swatch-input {
+  width: 44px; height: 40px; padding: 0; border: 1px solid var(--border); border-radius: 8px;
+  background: none; cursor: pointer;
+}
+.colors-hex-input { flex: 1; font-family: monospace; text-transform: uppercase; }
+
+.colors-scale { display: flex; flex-direction: column; gap: 2px; padding: 8px 18px 0; }
+.colors-scale-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px;
+  font-family: monospace; font-size: 12px;
+}
+.colors-scale-step { font-weight: 700; width: 32px; }
+.colors-scale-hex { flex: 1; opacity: 0.85; }
+.colors-scale-actions { display: flex; gap: 4px; }
+.colors-scale-btn {
+  all: unset;
+  box-sizing: border-box !important;
+  padding: 4px 8px !important; border-radius: 999px !important; background: rgba(0,0,0,0.15) !important;
+  font-size: 10px !important; font-weight: 700 !important; cursor: pointer !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+.colors-scale-btn:hover { background: rgba(0,0,0,0.3) !important; }
+.colors-scale-btn:disabled { opacity: 0.5 !important; cursor: default !important; }
+
+.colors-save-row { display: flex; gap: 8px; padding: 14px 18px 0; }
+.colors-save-row .search { flex: 1; }
+
+.colors-saved { display: flex; flex-direction: column; gap: 8px; padding: 14px 18px 0; }
+.colors-saved-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px;
+  background: var(--bg-subtle);
+}
+.colors-saved-swatches { display: flex; }
+.colors-saved-swatch {
+  all: unset;
+  width: 16px; height: 16px; margin-left: -6px; border-radius: 999px !important;
+  border: 2px solid var(--bg-subtle) !important; cursor: pointer !important;
+}
+.colors-saved-swatch:first-child { margin-left: 0; }
+.colors-saved-name { flex: 1; font-size: 12px; font-weight: 600; color: var(--text); }
