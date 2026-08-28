@@ -11,6 +11,7 @@ export async function getData(key: string): Promise<string | null> {
 }
 
 export function setDataInBackground(key: string, value: string | null) {
+  if (!framer.isAllowedTo("setPluginData")) return
   withTimeout(framer.setPluginData(key, value), 3000, undefined).catch((err) => {
     console.warn(`Failed to persist plugin data for "${key}":`, err)
   })
