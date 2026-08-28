@@ -1,18 +1,29 @@
 * { box-sizing: border-box; }
 :root {
-  /* Aliased to Framer's own live-injected theme variables (confirmed real via framer.css's
-     own unfallbacked var(--framer-color-bg-tertiary) usage) instead of guessing light/dark
-     ourselves — data-framer-theme and prefers-color-scheme both proved unreliable signals
-     inside the plugin iframe. This always matches Framer's actual current theme, live. */
-  --bg: var(--framer-color-bg, #ffffff);
-  --bg-subtle: var(--framer-color-bg-secondary, #f6f6f7);
-  --card-bg: var(--framer-color-bg-secondary, #fafafa);
-  --text: var(--framer-color-text, #17171a);
-  --text-muted: var(--framer-color-text-secondary, #6f6f75);
-  --border: var(--framer-color-divider, #e8e8ea);
-  --accent: var(--framer-color-tint, #4a5aff);
-  --accent-soft: var(--framer-color-tint-dimmed, #eceeff);
+  /* No reliable signal exists for Framer's host theme inside a third-party plugin iframe —
+     confirmed by testing: data-framer-theme is never set, prefers-color-scheme reflects the
+     OS not Framer's in-app theme, and --framer-color-* tokens are never injected (framer.css's
+     own stylesheet defines no default for them, so they're simply undefined here). So this is
+     a manual, user-controlled toggle instead — see [data-theme] below. */
+  --bg: #ffffff;
+  --bg-subtle: #f6f6f7;
+  --card-bg: #fafafa;
+  --text: #17171a;
+  --text-muted: #6f6f75;
+  --border: #e8e8ea;
+  --accent: #4a5aff;
+  --accent-soft: #eceeff;
   --danger: #d5372c;
+}
+:root[data-theme="dark"] {
+  --bg: #232325;
+  --bg-subtle: #1c1c1e;
+  --card-bg: #2a2a2d;
+  --text: #f1f1f2;
+  --text-muted: #a3a3a7;
+  --border: #38383b;
+  --accent: #8b93ff;
+  --accent-soft: #2a2b4d;
 }
 
 html, body, #root { height: 100%; margin: 0; }
@@ -41,6 +52,14 @@ body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 .logout-btn:hover { background: var(--bg-subtle) !important; color: var(--text) !important; }
+
+.theme-btn {
+  all: unset;
+  box-sizing: border-box !important;
+  font-size: 13px !important; cursor: pointer !important; padding: 4px 6px !important;
+  border-radius: 6px !important; line-height: 1 !important;
+}
+.theme-btn:hover { background: var(--bg-subtle) !important; }
 
 .login {
   height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;

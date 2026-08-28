@@ -1,8 +1,36 @@
 import { useEffect, useMemo, useState } from "react"
 import type { User } from "@supabase/supabase-js"
+import { framer } from "@framer/plugin"
 import { insertComponent } from "./nodeBuilders"
 import { restoreSession, signOut } from "./lib/auth"
 import Login from "./Login"
+
+const THEME_KEY = "theme-preference"
+type ThemePref = "light" | "dark"
+
+function useTheme() {
+  const [theme, setTheme] = useState<ThemePref>("light")
+
+  useEffect(() => {
+    framer.getPluginData(THEME_KEY).then((saved) => {
+      if (saved === "dark" || saved === "light") setTheme(saved)
+    })
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme)
+  }, [theme])
+
+  function toggle() {
+    setTheme((prev) => {
+      const next = prev === "light" ? "dark" : "light"
+      framer.setPluginData(THEME_KEY, next)
+      return next
+    })
+  }
+
+  return { theme, toggle }
+}
 
 const stroke = "var(--border)"
 const accent = "#4a5aff"
@@ -124,6 +152,7 @@ const CATEGORIES = ["All", ...Array.from(new Set(COMPONENTS.map((c) => c.categor
 export default function App() {
   const [user, setUser] = useState<User | null>(null)
   const [checkingSession, setCheckingSession] = useState(true)
+  const { theme, toggle } = useTheme()
 
   useEffect(() => {
     restoreSession()
@@ -145,10 +174,20 @@ export default function App() {
     return <Login onLoggedIn={setUser} />
   }
 
-  return <Gallery user={user} onLogOut={() => setUser(null)} />
+  return <Gallery user={user} onLogOut={() => setUser(null)} theme={theme} onToggleTheme={toggle} />
 }
 
-function Gallery({ user, onLogOut }: { user: User; onLogOut: () => void }) {
+function Gallery({
+  user,
+  onLogOut,
+  theme,
+  onToggleTheme,
+}: {
+  user: User
+  onLogOut: () => void
+  theme: ThemePref
+  onToggleTheme: () => void
+}) {
   const [activeCategory, setActiveCategory] = useState("All")
   const [searchTerm, setSearchTerm] = useState("")
   const [toast, setToast] = useState<string | null>(null)
@@ -191,6 +230,9 @@ function Gallery({ user, onLogOut }: { user: User; onLogOut: () => void }) {
         <div className="brand">
           <div className="brand-mark">CK</div>
           <div className="brand-name">Component Kit</div>
+          <button className="theme-btn" title="Toggle theme" onClick={onToggleTheme}>
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
           <button
             className="logout-btn"
             title={user.email ?? "Account"}
