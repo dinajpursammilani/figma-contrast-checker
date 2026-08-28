@@ -44,7 +44,7 @@ body {
 
 .app { height: 100%; display: flex; flex-direction: column; background: var(--bg); }
 
-.header { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.header { padding: 10px 16px 8px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .brand-mark {
   width: 22px; height: 22px; border-radius: 6px; background: var(--accent);
@@ -108,7 +108,7 @@ body {
 .search:focus { border-color: var(--accent) !important; }
 
 .categories {
-  display: flex; gap: 5px; padding: 8px 18px; overflow-x: auto; flex-shrink: 0;
+  display: flex; gap: 5px; padding: 6px 16px; overflow-x: auto; flex-shrink: 0;
   border-bottom: 1px solid var(--border);
 }
 .cat-btn {
@@ -126,63 +126,14 @@ body {
   color: var(--accent) !important; border-color: var(--accent) !important; background: var(--accent-soft) !important;
 }
 
-/* ---- Component list (single column — a 2-up grid kept forcing unrelated cards into a
-   shared row height, which caused several unrelated visual bugs; a list sidesteps the whole
-   class of problem and reads as more "modern SaaS" than a grid of big cards anyway) ---- */
+/* ---- Component list (cards, one per row — a 2-up grid kept forcing unrelated cards into a
+   shared row height, which caused several unrelated visual bugs; a single column sidesteps
+   that whole class of problem since there's never a sibling in the same row to pair against) ---- */
 
 .list {
-  flex: 1; overflow-y: auto; padding: 6px 10px 14px; display: flex; flex-direction: column; gap: 2px;
+  flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px;
   background: var(--bg);
 }
-
-.list-row {
-  position: relative;
-  display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 10px;
-  cursor: pointer; transition: background 0.12s ease;
-}
-.list-row:hover { background: var(--bg-subtle); }
-.list-row.busy { opacity: 0.6; pointer-events: none; }
-
-.list-row.skeleton {
-  height: 60px; cursor: default; pointer-events: none;
-  background: linear-gradient(90deg, var(--card-bg) 25%, var(--bg-subtle) 50%, var(--card-bg) 75%);
-  background-size: 200% 100%; animation: shimmer 1.3s ease-in-out infinite;
-}
-
-.list-thumb-wrap { position: relative; flex-shrink: 0; width: 44px; height: 44px; border-radius: 8px; }
-.list-thumb {
-  width: 100%; height: 100%; border-radius: 8px;
-  background: var(--card-bg); border: 1px solid var(--border); overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
-}
-.list-thumb svg { width: 100%; height: 100%; padding: 6px; }
-.list-thumb-wrap .preview-lock { border-radius: 8px; }
-.list-thumb-wrap .preview-lock-icon { width: 20px; height: 20px; font-size: 9px; }
-
-.list-info { flex: 1; min-width: 0; }
-.list-name-row { display: flex; align-items: center; gap: 6px; }
-.list-name {
-  font-size: 13px; font-weight: 600; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.list-category { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
-
-.list-actions { flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
-.list-hint {
-  font-size: 10px; font-weight: 700; color: var(--accent); opacity: 0; transition: opacity 0.12s ease;
-  white-space: nowrap;
-}
-.list-row:hover .list-hint { opacity: 1; }
-.list-locked-hint { font-size: 10px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
-
-.list-save-btn {
-  all: unset;
-  box-sizing: border-box !important;
-  width: 26px !important; height: 26px !important; border-radius: 999px !important;
-  display: flex !important; align-items: center !important; justify-content: center !important;
-  color: var(--text-muted) !important; cursor: pointer !important; font-size: 12px !important;
-}
-.list-save-btn:hover { background: var(--accent-soft) !important; color: var(--accent) !important; }
 
 .card {
   position: relative;
@@ -206,9 +157,9 @@ body {
   100% { background-position: -200% 0; }
 }
 
+.preview-wrap { position: relative; }
 .preview {
-  position: relative;
-  height: 84px; display: flex; align-items: center; justify-content: center; padding: 10px;
+  height: 100px; display: flex; align-items: center; justify-content: center; padding: 12px;
   background: var(--bg); border-bottom: 1px solid var(--border);
 }
 .preview svg { width: 100%; height: 100%; }
@@ -345,9 +296,9 @@ body {
 
 /* ---- Greeting ---- */
 
-.greeting { padding: 14px 18px 12px; border-bottom: 1px solid var(--border); }
-.greeting-title { font-size: 15px; font-weight: 700; color: var(--text); }
-.greeting-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+.greeting { padding: 10px 16px 8px; border-bottom: 1px solid var(--border); }
+.greeting-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.greeting-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
 
 /* ---- Settings ---- */
 

@@ -272,7 +272,7 @@ function Gallery({ user }: { user: User }) {
         {loadError ? (
           <div className="empty">{loadError}</div>
         ) : !components ? (
-          Array.from({ length: 6 }).map((_, i) => <div key={i} className="list-row skeleton" />)
+          Array.from({ length: 6 }).map((_, i) => <div key={i} className="card skeleton" />)
         ) : items.length === 0 ? (
           <div className="empty">No components match your search.</div>
         ) : (
@@ -349,38 +349,35 @@ function GalleryCard({
   }))
 
   return (
-    <div className={`list-row ${busy ? "busy" : ""}`} onClick={onOpenDetail}>
-      <div className="list-thumb-wrap">
-        <div ref={previewRef} className="list-thumb" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
+    <div className={`card ${busy ? "busy" : ""} ${locked ? "locked" : ""}`} onClick={onOpenDetail}>
+      <div className="preview-wrap">
+        <div ref={previewRef} className="preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
         {locked && (
           <div className="preview-lock">
             <div className="preview-lock-icon">🔒</div>
           </div>
         )}
       </div>
-      <div className="list-info">
-        <div className="list-name-row">
-          <span className="list-name">{component.name}</span>
+      <button
+        className="save-btn"
+        title="Save to boards"
+        onClick={(e) => {
+          e.stopPropagation()
+          onSave()
+        }}
+      >
+        🔖 Save
+      </button>
+      <div className="card-footer">
+        <span className="card-name">
+          {component.name}
           {component.is_pro && <span className="pro-badge">PRO</span>}
-        </div>
-        <div className="list-category">{component.category}</div>
-      </div>
-      <div className="list-actions">
+        </span>
         {locked ? (
-          <span className="list-locked-hint">Tap to unlock</span>
+          <span className="locked-hint">Tap to unlock</span>
         ) : (
-          <span className="list-hint">{busy ? "Inserting…" : warmed ? "Drag to insert" : "Loading…"}</span>
+          <span className="insert-hint">{busy ? "Inserting…" : warmed ? "Drag to insert" : "Loading…"}</span>
         )}
-        <button
-          className="list-save-btn"
-          title="Save to boards"
-          onClick={(e) => {
-            e.stopPropagation()
-            onSave()
-          }}
-        >
-          🔖
-        </button>
       </div>
     </div>
   )
