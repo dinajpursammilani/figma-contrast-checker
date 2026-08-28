@@ -73,14 +73,14 @@ export async function unsaveComponent(savedItemId: string): Promise<void> {
   if (error) throw new Error(`Failed to remove saved component: ${error.message}`)
 }
 
-export async function isComponentSaved(componentId: string): Promise<boolean> {
+/** Every place this component is currently saved — the "unsorted/All saved" slot has
+ * board_id null. Used to render checked/unchecked state per board in the save drawer. */
+export async function fetchMembership(componentId: string): Promise<{ id: string; board_id: string | null }[]> {
   const { data, error } = await supabase
     .from("saved_items")
-    .select("id")
+    .select("id, board_id")
     .eq("component_id", componentId)
-    .is("board_id", null)
-    .limit(1)
 
-  if (error) return false
-  return (data?.length ?? 0) > 0
+  if (error) return []
+  return data ?? []
 }

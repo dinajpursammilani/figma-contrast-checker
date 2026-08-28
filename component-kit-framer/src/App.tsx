@@ -5,11 +5,11 @@ import { restoreSession } from "./lib/auth"
 import { getData, setDataInBackground } from "./lib/pluginStorage"
 import { fetchComponents, type ComponentRow } from "./lib/components"
 import { getOnboardingStatus, getFullName, friendlyNameFromEmail } from "./lib/profile"
-import { saveComponent } from "./lib/boards"
 import Login from "./Login"
 import Onboarding from "./Onboarding"
 import Settings from "./Settings"
 import Boards from "./Boards"
+import SaveDrawer from "./SaveDrawer"
 
 const THEME_KEY = "theme-preference"
 type ThemePref = "light" | "dark"
@@ -133,6 +133,7 @@ function Gallery({ user }: { user: User }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [toast, setToast] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [savingComponent, setSavingComponent] = useState<ComponentRow | null>(null)
   const [greetingName, setGreetingName] = useState<string>(user.email ? friendlyNameFromEmail(user.email) : "there")
 
   useEffect(() => {
@@ -228,12 +229,10 @@ function Gallery({ user }: { user: User }) {
                 title="Save to boards"
                 onClick={(e) => {
                   e.stopPropagation()
-                  saveComponent(c.id)
-                    .then(() => showToast(`Saved "${c.name}"`))
-                    .catch((err) => showToast(err instanceof Error ? err.message : "Couldn't save"))
+                  setSavingComponent(c)
                 }}
               >
-                🔖
+                🔖 Save
               </button>
               <div className="card-footer">
                 <span className="card-name">
@@ -248,6 +247,14 @@ function Gallery({ user }: { user: User }) {
       </div>
 
       <div className={`toast ${toast ? "show" : ""}`}>{toast}</div>
+
+      {savingComponent && (
+        <SaveDrawer
+          componentId={savingComponent.id}
+          componentName={savingComponent.name}
+          onClose={() => setSavingComponent(null)}
+        />
+      )}
     </div>
   )
 }
