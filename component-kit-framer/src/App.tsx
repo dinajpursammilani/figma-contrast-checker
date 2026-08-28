@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import type { User } from "@supabase/supabase-js"
-import { insertComponent } from "./nodeBuilders"
+import { Draggable } from "@framer/plugin"
+import { insertComponent, warmInsertUrl, getCachedInsertUrl } from "./nodeBuilders"
 import { restoreSession } from "./lib/auth"
 import { getData, setDataInBackground } from "./lib/pluginStorage"
 import { fetchComponents, type ComponentRow } from "./lib/components"
@@ -135,6 +136,7 @@ function Gallery({ user }: { user: User }) {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [savingComponent, setSavingComponent] = useState<ComponentRow | null>(null)
   const [greetingName, setGreetingName] = useState<string>(user.email ? friendlyNameFromEmail(user.email) : "there")
+  const [warmedFiles, setWarmedFiles] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     getFullName(user.id).then((name) => {
@@ -147,6 +149,17 @@ function Gallery({ user }: { user: User }) {
       .then(setComponents)
       .catch((err) => setLoadError(err instanceof Error ? err.message : "Couldn't load the component library."))
   }, [])
+
+  // Drag-to-canvas needs the insert URL synchronously (drag data can't be a promise), so
+  // pre-create every visible component's code file up front instead of waiting for a click.
+  useEffect(() => {
+    if (!components) return
+    components.forEach((c) => {
+      warmInsertUrl(c.file_name, c.tsx_source).then((url) => {
+        if (url) setWarmedFiles((prev) => new Set(prev).add(c.file_name))
+      })
+    })
+  }, [components])
 
   const categories = useMemo(() => {
     if (!components) return ["All"]
@@ -221,28 +234,49 @@ function Gallery({ user }: { user: User }) {
         ) : items.length === 0 ? (
           <div className="empty">No components match your search.</div>
         ) : (
-          items.map((c) => (
-            <div key={c.id} className={`card ${busyId === c.id ? "busy" : ""}`} onClick={() => handleInsert(c)}>
-              <div className="preview" dangerouslySetInnerHTML={{ __html: c.preview_svg }} />
-              <button
-                className="save-btn"
-                title="Save to boards"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setSavingComponent(c)
-                }}
-              >
-                🔖 Save
-              </button>
-              <div className="card-footer">
-                <span className="card-name">
-                  {c.name}
-                  {c.is_pro && <span className="pro-badge">PRO</span>}
-                </span>
-                <span className="insert-hint">{busyId === c.id ? "Inserting…" : "Insert →"}</span>
+          items.map((c) => {
+            const card = (
+              <div className={`card ${busyId === c.id ? "busy" : ""}`} onClick={() => handleInsert(c)}>
+                <div className="preview" dangerouslySetInnerHTML={{ __html: c.preview_svg }} />
+                <button
+                  className="save-btn"
+                  title="Save to boards"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSavingComponent(c)
+                  }}
+                >
+                  🔖 Save
+                </button>
+                <div className="card-footer">
+                  <span className="card-name">
+                    {c.name}
+                    {c.is_pro && <span className="pro-badge">PRO</span>}
+                  </span>
+                  <span className="insert-hint">
+                    {busyId === c.id ? "Inserting…" : warmedFiles.has(c.file_name) ? "Drag or click →" : "Insert →"}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))
+            )
+
+            if (!warmedFiles.has(c.file_name)) {
+              return <div key={c.id}>{card}</div>
+            }
+
+            return (
+              <Draggable
+                key={c.id}
+                data={() => ({
+                  type: "componentInstance",
+                  url: getCachedInsertUrl(c.file_name) ?? "",
+                  name: c.name,
+                })}
+              >
+                {card}
+              </Draggable>
+            )
+          })
         )}
       </div>
 

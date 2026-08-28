@@ -41,3 +41,19 @@ export async function insertComponent(fileName: string, tsxSource: string) {
   // inserted component's text, use "Edit Code" in Framer's own right-click menu on the instance.
   await framer.addComponentInstance({ url })
 }
+
+/** Pre-fetches (and caches) a component's insert URL without inserting it — call this for
+ * every visible card up front, so drag-to-canvas (which needs the URL synchronously, not as
+ * a promise) has it ready by the time the user actually starts dragging. */
+export async function warmInsertUrl(fileName: string, tsxSource: string): Promise<string | null> {
+  try {
+    return await getInsertUrl(fileName, tsxSource)
+  } catch (err) {
+    console.warn(`Failed to warm insert URL for "${fileName}":`, err)
+    return null
+  }
+}
+
+export function getCachedInsertUrl(fileName: string): string | undefined {
+  return insertUrlCache.get(fileName)
+}
