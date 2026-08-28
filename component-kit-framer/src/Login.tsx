@@ -14,18 +14,23 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
     setError(null)
     setBusy(true)
 
-    const result = mode === "signin" ? await signIn(email, password) : await signUp(email, password)
+    try {
+      const result = mode === "signin" ? await signIn(email, password) : await signUp(email, password)
 
-    setBusy(false)
-
-    if (result.error) {
-      setError(result.error)
-      return
-    }
-    if (result.user) {
-      onLoggedIn(result.user)
-    } else if (mode === "signup") {
-      setError("Check your email to confirm your account, then sign in.")
+      if (result.error) {
+        setError(result.error)
+        return
+      }
+      if (result.user) {
+        onLoggedIn(result.user)
+      } else if (mode === "signup") {
+        setError("Check your email to confirm your account, then sign in.")
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong — try again.")
+      console.error(err)
+    } finally {
+      setBusy(false)
     }
   }
 
