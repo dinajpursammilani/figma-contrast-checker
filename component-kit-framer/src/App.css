@@ -124,6 +124,7 @@ body {
 }
 
 .card {
+  position: relative;
   border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--card-bg);
   cursor: pointer; transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
 }
@@ -300,3 +301,63 @@ body {
 .settings-link { font-size: 13px; color: var(--accent); text-decoration: none; }
 .settings-link:hover { text-decoration: underline; }
 .settings-muted { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+/* ---- Save button on gallery cards ---- */
+
+.save-btn {
+  all: unset;
+  position: absolute !important; top: 6px !important; right: 6px !important;
+  width: 24px !important; height: 24px !important; border-radius: 6px !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  background: rgba(0,0,0,0.45) !important; font-size: 12px !important; cursor: pointer !important;
+  opacity: 0 !important; transition: opacity 0.12s ease !important;
+}
+.card:hover .save-btn { opacity: 1 !important; }
+
+/* ---- Boards ---- */
+
+.boards-header {
+  display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--border);
+}
+.boards-back {
+  all: unset;
+  font-size: 13px !important; color: var(--text-muted) !important; cursor: pointer !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+.boards-back:hover { color: var(--text) !important; }
+.boards-title { flex: 1; font-size: 14px; font-weight: 700; color: var(--text); }
+.boards-delete {
+  all: unset;
+  font-size: 12px !important; color: var(--danger) !important; cursor: pointer !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.boards-new { display: flex; gap: 8px; padding: 12px 18px; }
+.boards-new .search { flex: 1; }
+.boards-create-btn {
+  all: unset;
+  box-sizing: border-box !important;
+  padding: 0 16px !important; border-radius: 8px !important; background: var(--accent) !important;
+  color: white !important; font-size: 13px !important; font-weight: 600 !important; cursor: pointer !important;
+  display: flex !important; align-items: center !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+.boards-create-btn:disabled { opacity: 0.4 !important; cursor: default !important; }
+
+.boards-list { display: flex; flex-direction: column; gap: 6px; padding: 0 18px 12px; }
+.board-item {
+  all: unset;
+  box-sizing: border-box !important;
+  display: block !important; width: 100% !important; padding: 10px 12px !important;
+  border-radius: 8px !important; background: var(--bg-subtle) !important; color: var(--text) !important;
+  font-size: 13px !important; font-weight: 600 !important; cursor: pointer !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+.board-item:hover { background: var(--accent-soft) !important; }
+
+.unsave-btn {
+  all: unset;
+  font-size: 11px !important; color: var(--text-muted) !important; cursor: pointer !important;
+  padding: 2px 4px !important;
+}
+.unsave-btn:hover { color: var(--danger) !important; }

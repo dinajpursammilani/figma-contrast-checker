@@ -5,9 +5,11 @@ import { restoreSession } from "./lib/auth"
 import { getData, setDataInBackground } from "./lib/pluginStorage"
 import { fetchComponents, type ComponentRow } from "./lib/components"
 import { getOnboardingStatus, getFullName, friendlyNameFromEmail } from "./lib/profile"
+import { saveComponent } from "./lib/boards"
 import Login from "./Login"
 import Onboarding from "./Onboarding"
 import Settings from "./Settings"
+import Boards from "./Boards"
 
 const THEME_KEY = "theme-preference"
 type ThemePref = "light" | "dark"
@@ -98,16 +100,23 @@ function Shell({
   theme: ThemePref
   onToggleTheme: () => void
 }) {
-  const [view, setView] = useState<"home" | "settings">("home")
+  const [view, setView] = useState<"home" | "boards" | "settings">("home")
 
   return (
     <div className="shell">
       <div className="shell-content">
-        {view === "home" ? <Gallery user={user} /> : <Settings user={user} theme={theme} onToggleTheme={onToggleTheme} onLogOut={onLogOut} />}
+        {view === "home" && <Gallery user={user} />}
+        {view === "boards" && <Boards />}
+        {view === "settings" && (
+          <Settings user={user} theme={theme} onToggleTheme={onToggleTheme} onLogOut={onLogOut} />
+        )}
       </div>
       <div className="bottom-nav">
         <button className={`nav-btn ${view === "home" ? "active" : ""}`} onClick={() => setView("home")}>
           🏠 Home
+        </button>
+        <button className={`nav-btn ${view === "boards" ? "active" : ""}`} onClick={() => setView("boards")}>
+          🔖 Boards
         </button>
         <button className={`nav-btn ${view === "settings" ? "active" : ""}`} onClick={() => setView("settings")}>
           ⚙️ Settings
@@ -214,6 +223,18 @@ function Gallery({ user }: { user: User }) {
           items.map((c) => (
             <div key={c.id} className={`card ${busyId === c.id ? "busy" : ""}`} onClick={() => handleInsert(c)}>
               <div className="preview" dangerouslySetInnerHTML={{ __html: c.preview_svg }} />
+              <button
+                className="save-btn"
+                title="Save to boards"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  saveComponent(c.id)
+                    .then(() => showToast(`Saved "${c.name}"`))
+                    .catch((err) => showToast(err instanceof Error ? err.message : "Couldn't save"))
+                }}
+              >
+                🔖
+              </button>
               <div className="card-footer">
                 <span className="card-name">
                   {c.name}
