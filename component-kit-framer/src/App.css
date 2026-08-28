@@ -167,7 +167,7 @@ body {
 }
 
 .card {
-  position: relative; min-height: 168px;
+  position: relative; min-height: 148px;
   border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg);
   cursor: pointer; transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
 }
@@ -206,8 +206,8 @@ body {
 }
 
 .card-footer {
-  min-height: 46px; padding: 9px 10px; display: flex; flex-direction: column; gap: 3px; box-sizing: border-box;
-  border-radius: 0 0 12px 12px;
+  min-height: 36px; padding: 8px 10px; display: flex; flex-direction: column; justify-content: center; gap: 3px;
+  box-sizing: border-box; border-radius: 0 0 12px 12px;
 }
 .card-name {
   font-size: 12px; font-weight: 600; color: var(--text);
