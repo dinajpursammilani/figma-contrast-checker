@@ -9,7 +9,7 @@ const THEME_KEY = "theme-preference"
 type ThemePref = "light" | "dark"
 
 function useTheme() {
-  const [theme, setTheme] = useState<ThemePref>("light")
+  const [theme, setTheme] = useState<ThemePref>("dark")
 
   useEffect(() => {
     framer.getPluginData(THEME_KEY).then((saved) => {
