@@ -163,7 +163,9 @@ function Shell({
 function Gallery({ user }: { user: User }) {
   const [components, setComponents] = useState<ComponentRow[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [activeCategory, setActiveCategory] = useState("All")
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
+  const [selectedAccess, setSelectedAccess] = useState<Set<"free" | "pro">>(new Set(["free", "pro"]))
+  const [openFilter, setOpenFilter] = useState<"category" | "access" | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [toast, setToast] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -220,10 +222,10 @@ function Gallery({ user }: { user: User }) {
     })
   }, [components, isPro])
 
-  const categories = useMemo(() => {
-    if (!components) return ["All"]
-    return ["All", ...Array.from(new Set(components.map((c) => c.category)))]
-  }, [components])
+  const allCategories = useMemo(
+    () => (components ? Array.from(new Set(components.map((c) => c.category))) : []),
+    [components]
+  )
 
   const categoryCounts = useMemo(() => {
     if (!components) return []
@@ -232,15 +234,38 @@ function Gallery({ user }: { user: User }) {
     return Array.from(counts.entries())
   }, [components])
 
+  function openCategory(category: string | null) {
+    setSelectedCategories(new Set(category ? [category] : allCategories))
+    setSelectedAccess(new Set(["free", "pro"]))
+    setScreen("browse")
+  }
+
+  function toggleCategory(category: string) {
+    setSelectedCategories((prev) => {
+      const next = new Set(prev)
+      next.has(category) ? next.delete(category) : next.add(category)
+      return next
+    })
+  }
+
+  function toggleAccess(access: "free" | "pro") {
+    setSelectedAccess((prev) => {
+      const next = new Set(prev)
+      next.has(access) ? next.delete(access) : next.add(access)
+      return next
+    })
+  }
+
   const items = useMemo(() => {
     if (!components) return []
     const term = searchTerm.toLowerCase()
     return components.filter((c) => {
-      const matchesCat = activeCategory === "All" || c.category === activeCategory
+      const matchesCat = selectedCategories.size === 0 || selectedCategories.has(c.category)
+      const matchesAccess = selectedAccess.has(c.is_pro ? "pro" : "free")
       const matchesSearch = c.name.toLowerCase().includes(term)
-      return matchesCat && matchesSearch
+      return matchesCat && matchesAccess && matchesSearch
     })
-  }, [components, activeCategory, searchTerm])
+  }, [components, selectedCategories, selectedAccess, searchTerm])
 
   async function handleInsert(component: ComponentRow) {
     setBusyId(component.id)
@@ -284,27 +309,14 @@ function Gallery({ user }: { user: User }) {
           </div>
 
           <div className="tiles">
-            <button
-              className="tile tile-browse"
-              onClick={() => {
-                setActiveCategory("All")
-                setScreen("browse")
-              }}
-            >
+            <button className="tile tile-browse" onClick={() => openCategory(null)}>
               <div className="tile-icon">✨</div>
               <div className="tile-name">Browse all</div>
               <div className="tile-count">{components ? `${components.length} components` : "…"}</div>
             </button>
 
             {categoryCounts.map(([category, count]) => (
-              <button
-                key={category}
-                className="tile"
-                onClick={() => {
-                  setActiveCategory(category)
-                  setScreen("browse")
-                }}
-              >
+              <button key={category} className="tile" onClick={() => openCategory(category)}>
                 <div className="tile-icon">{categoryIcon(category)}</div>
                 <div className="tile-name">{category}</div>
                 <div className="tile-count">{count} components</div>
@@ -316,31 +328,75 @@ function Gallery({ user }: { user: User }) {
         <>
           <div className="browse-header">
             <button className="browse-back" onClick={() => setScreen("tiles")}>
-              ‹ Home
+              ‹
             </button>
-            <span className="browse-title">{activeCategory === "All" ? "All components" : activeCategory}</span>
-          </div>
-
-          <div className="header">
             <input
-              className="search"
+              className="search browse-search"
               placeholder="Search components…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
-          <div className="categories">
-            {categories.map((c) => (
-              <button
-                key={c}
-                className={`cat-btn ${c === activeCategory ? "active" : ""}`}
-                onClick={() => setActiveCategory(c)}
-              >
-                {c}
-              </button>
-            ))}
+          <div className="filter-row">
+            <button
+              className={`filter-chip ${selectedCategories.size < allCategories.length ? "active" : ""}`}
+              onClick={() => setOpenFilter(openFilter === "category" ? null : "category")}
+            >
+              {selectedCategories.size === 1 ? Array.from(selectedCategories)[0] : "Category"}
+              {selectedCategories.size < allCategories.length && (
+                <span
+                  className="filter-chip-clear"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSelectedCategories(new Set(allCategories))
+                  }}
+                >
+                  ✕
+                </span>
+              )}
+            </button>
+            <button
+              className={`filter-chip ${selectedAccess.size < 2 ? "active" : ""}`}
+              onClick={() => setOpenFilter(openFilter === "access" ? null : "access")}
+            >
+              {selectedAccess.size === 1 ? (Array.from(selectedAccess)[0] === "pro" ? "Pro" : "Free") : "Access"}
+              {selectedAccess.size < 2 && (
+                <span
+                  className="filter-chip-clear"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSelectedAccess(new Set(["free", "pro"]))
+                  }}
+                >
+                  ✕
+                </span>
+              )}
+            </button>
           </div>
+
+          {openFilter === "category" && (
+            <div className="filter-dropdown">
+              {allCategories.map((cat) => (
+                <label key={cat} className="filter-option">
+                  <input type="checkbox" checked={selectedCategories.has(cat)} onChange={() => toggleCategory(cat)} />
+                  {cat}
+                </label>
+              ))}
+            </div>
+          )}
+          {openFilter === "access" && (
+            <div className="filter-dropdown">
+              <label className="filter-option">
+                <input type="checkbox" checked={selectedAccess.has("free")} onChange={() => toggleAccess("free")} />
+                Free
+              </label>
+              <label className="filter-option">
+                <input type="checkbox" checked={selectedAccess.has("pro")} onChange={() => toggleAccess("pro")} />
+                Pro
+              </label>
+            </div>
+          )}
 
           <div className="list">
             {loadError ? (
