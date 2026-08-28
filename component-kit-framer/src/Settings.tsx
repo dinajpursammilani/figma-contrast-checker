@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import { signOut } from "./lib/auth"
+import { getProStatus, startCheckout } from "./lib/payments"
 
 type ThemePref = "light" | "dark"
 
@@ -18,6 +20,26 @@ export default function Settings({
   onToggleTheme: () => void
   onLogOut: () => void
 }) {
+  const [isPro, setIsPro] = useState<boolean | null>(null)
+  const [checkingOut, setCheckingOut] = useState(false)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+
+  useEffect(() => {
+    getProStatus(user.id).then(setIsPro)
+  }, [user.id])
+
+  async function handleUpgrade() {
+    setCheckingOut(true)
+    setCheckoutError(null)
+    try {
+      await startCheckout()
+    } catch (err) {
+      setCheckoutError(err instanceof Error ? err.message : "Couldn't start checkout — try again")
+    } finally {
+      setCheckingOut(false)
+    }
+  }
+
   return (
     <div className="settings">
       <div className="settings-section">
@@ -32,6 +54,23 @@ export default function Settings({
         }}>
           Log out
         </button>
+      </div>
+
+      <div className="settings-section">
+        <h3>Plan</h3>
+        <div className="settings-row">
+          <span>Current plan</span>
+          <span className="settings-value">{isPro === null ? "…" : isPro ? "Pro" : "Free"}</span>
+        </div>
+        {isPro === false && (
+          <button className="settings-toggle" onClick={handleUpgrade} disabled={checkingOut}>
+            {checkingOut ? "Opening checkout…" : "Upgrade to Pro →"}
+          </button>
+        )}
+        {checkoutError && <p className="settings-muted">{checkoutError}</p>}
+        {isPro === false && (
+          <p className="settings-muted">Checkout opens in your browser — come back and reopen the plugin once you're done.</p>
+        )}
       </div>
 
       <div className="settings-section">

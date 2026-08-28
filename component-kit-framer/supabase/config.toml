@@ -1,0 +1,11 @@
+project_id = "jmywnalmehibzwvwwplz"
+
+[functions.polar-checkout]
+# Called by the plugin with the user's own Supabase session token — the gateway checks it's a
+# valid Supabase JWT before our code runs.
+verify_jwt = true
+
+[functions.polar-webhook]
+# Called by Polar directly, with Polar's own signature headers, not a Supabase JWT — verifying
+# Polar's signature happens inside the function itself (see index.ts).
+verify_jwt = false
