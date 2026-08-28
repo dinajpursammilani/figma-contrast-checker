@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import type { User } from "@supabase/supabase-js"
-import { Draggable } from "@framer/plugin"
+import { Draggable, framer } from "@framer/plugin"
 import { insertComponent, warmInsertUrl, getCachedInsertUrl } from "./nodeBuilders"
 import { restoreSession } from "./lib/auth"
 import { getData, setDataInBackground } from "./lib/pluginStorage"
@@ -200,6 +200,16 @@ function Gallery({ user }: { user: User }) {
 
   return (
     <div className="app">
+      <div
+        style={{
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
+          background: "red", color: "white", fontSize: 10, padding: "2px 6px",
+          fontFamily: "monospace",
+        }}
+      >
+        makeDraggable allowed: {String(framer.isAllowedTo("makeDraggable"))} | mode: {framer.mode}
+      </div>
+
       <div className="greeting">
         <div className="greeting-title">Hey, {greetingName}</div>
         <div className="greeting-subtitle">What will you build today?</div>
