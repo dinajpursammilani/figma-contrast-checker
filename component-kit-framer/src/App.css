@@ -99,23 +99,23 @@ body {
   all: unset;
   box-sizing: border-box !important;
   display: block !important;
-  width: 100% !important; height: auto !important; padding: 8px 12px !important;
+  width: 100% !important; height: auto !important; padding: 7px 10px !important;
   border-radius: 8px !important; border: 1px solid var(--border) !important;
-  background: var(--bg-subtle) !important; color: var(--text) !important; font-size: 13px !important;
+  background: var(--bg-subtle) !important; color: var(--text) !important; font-size: 12px !important;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 .search::placeholder { color: var(--text-muted) !important; }
 .search:focus { border-color: var(--accent) !important; }
 
 .categories {
-  display: flex; gap: 6px; padding: 10px 18px; overflow-x: auto; flex-shrink: 0;
+  display: flex; gap: 5px; padding: 8px 18px; overflow-x: auto; flex-shrink: 0;
   border-bottom: 1px solid var(--border);
 }
 .cat-btn {
   all: unset;
   box-sizing: border-box !important;
-  flex-shrink: 0 !important; font-size: 12px !important; font-weight: 600 !important;
-  padding: 6px 12px !important; border-radius: 999px !important;
+  flex-shrink: 0 !important; font-size: 11px !important; font-weight: 600 !important;
+  padding: 5px 10px !important; border-radius: 999px !important;
   border: 1px solid var(--border) !important; background: var(--bg-subtle) !important; color: var(--text-muted) !important;
   cursor: pointer !important;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
@@ -126,11 +126,63 @@ body {
   color: var(--accent) !important; border-color: var(--accent) !important; background: var(--accent-soft) !important;
 }
 
-.grid {
-  flex: 1; overflow-y: auto; padding: 14px; display: grid;
-  grid-template-columns: 1fr 1fr; gap: 12px; align-content: start;
+/* ---- Component list (single column — a 2-up grid kept forcing unrelated cards into a
+   shared row height, which caused several unrelated visual bugs; a list sidesteps the whole
+   class of problem and reads as more "modern SaaS" than a grid of big cards anyway) ---- */
+
+.list {
+  flex: 1; overflow-y: auto; padding: 6px 10px 14px; display: flex; flex-direction: column; gap: 2px;
   background: var(--bg);
 }
+
+.list-row {
+  position: relative;
+  display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 10px;
+  cursor: pointer; transition: background 0.12s ease;
+}
+.list-row:hover { background: var(--bg-subtle); }
+.list-row.busy { opacity: 0.6; pointer-events: none; }
+
+.list-row.skeleton {
+  height: 60px; cursor: default; pointer-events: none;
+  background: linear-gradient(90deg, var(--card-bg) 25%, var(--bg-subtle) 50%, var(--card-bg) 75%);
+  background-size: 200% 100%; animation: shimmer 1.3s ease-in-out infinite;
+}
+
+.list-thumb-wrap { position: relative; flex-shrink: 0; width: 44px; height: 44px; border-radius: 8px; }
+.list-thumb {
+  width: 100%; height: 100%; border-radius: 8px;
+  background: var(--card-bg); border: 1px solid var(--border); overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.list-thumb svg { width: 100%; height: 100%; padding: 6px; }
+.list-thumb-wrap .preview-lock { border-radius: 8px; }
+.list-thumb-wrap .preview-lock-icon { width: 20px; height: 20px; font-size: 9px; }
+
+.list-info { flex: 1; min-width: 0; }
+.list-name-row { display: flex; align-items: center; gap: 6px; }
+.list-name {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.list-category { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+.list-actions { flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+.list-hint {
+  font-size: 10px; font-weight: 700; color: var(--accent); opacity: 0; transition: opacity 0.12s ease;
+  white-space: nowrap;
+}
+.list-row:hover .list-hint { opacity: 1; }
+.list-locked-hint { font-size: 10px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+
+.list-save-btn {
+  all: unset;
+  box-sizing: border-box !important;
+  width: 26px !important; height: 26px !important; border-radius: 999px !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  color: var(--text-muted) !important; cursor: pointer !important; font-size: 12px !important;
+}
+.list-save-btn:hover { background: var(--accent-soft) !important; color: var(--accent) !important; }
 
 .card {
   position: relative;
@@ -293,9 +345,9 @@ body {
 
 /* ---- Greeting ---- */
 
-.greeting { padding: 20px 18px 4px; }
-.greeting-title { font-size: 20px; font-weight: 700; color: var(--text); }
-.greeting-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.greeting { padding: 14px 18px 12px; border-bottom: 1px solid var(--border); }
+.greeting-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.greeting-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
 
 /* ---- Settings ---- */
 
