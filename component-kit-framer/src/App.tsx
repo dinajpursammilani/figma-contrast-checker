@@ -1,5 +1,8 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import type { User } from "@supabase/supabase-js"
 import { insertComponent } from "./nodeBuilders"
+import { restoreSession, signOut } from "./lib/auth"
+import Login from "./Login"
 
 const stroke = "var(--border)"
 const accent = "#4a5aff"
@@ -119,6 +122,33 @@ const COMPONENTS: ComponentDef[] = [
 const CATEGORIES = ["All", ...Array.from(new Set(COMPONENTS.map((c) => c.category)))]
 
 export default function App() {
+  const [user, setUser] = useState<User | null>(null)
+  const [checkingSession, setCheckingSession] = useState(true)
+
+  useEffect(() => {
+    restoreSession()
+      .then(setUser)
+      .finally(() => setCheckingSession(false))
+  }, [])
+
+  if (checkingSession) {
+    return (
+      <div className="app">
+        <div className="empty" style={{ marginTop: 120 }}>
+          Loading…
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Login onLoggedIn={setUser} />
+  }
+
+  return <Gallery user={user} onLogOut={() => setUser(null)} />
+}
+
+function Gallery({ user, onLogOut }: { user: User; onLogOut: () => void }) {
   const [activeCategory, setActiveCategory] = useState("All")
   const [searchTerm, setSearchTerm] = useState("")
   const [toast, setToast] = useState<string | null>(null)
@@ -161,6 +191,16 @@ export default function App() {
         <div className="brand">
           <div className="brand-mark">CK</div>
           <div className="brand-name">Component Kit</div>
+          <button
+            className="logout-btn"
+            title={user.email ?? "Account"}
+            onClick={async () => {
+              await signOut()
+              onLogOut()
+            }}
+          >
+            Log out
+          </button>
         </div>
         <input
           className="search"
