@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from "react"
 import type { User } from "@supabase/supabase-js"
-import { framer } from "@framer/plugin"
 import { insertComponent } from "./nodeBuilders"
 import { restoreSession, signOut } from "./lib/auth"
+import { getData, setDataInBackground } from "./lib/pluginStorage"
 import Login from "./Login"
+import Onboarding from "./Onboarding"
 
 const THEME_KEY = "theme-preference"
+const ONBOARDING_DONE_KEY = "onboarding-done"
 type ThemePref = "light" | "dark"
 
 function useTheme() {
   const [theme, setTheme] = useState<ThemePref>("dark")
 
   useEffect(() => {
-    framer.getPluginData(THEME_KEY).then((saved) => {
+    getData(THEME_KEY).then((saved) => {
       if (saved === "dark" || saved === "light") setTheme(saved)
     })
   }, [])
@@ -24,7 +26,7 @@ function useTheme() {
   function toggle() {
     setTheme((prev) => {
       const next = prev === "light" ? "dark" : "light"
-      framer.setPluginData(THEME_KEY, next)
+      setDataInBackground(THEME_KEY, next)
       return next
     })
   }
@@ -152,13 +154,26 @@ const CATEGORIES = ["All", ...Array.from(new Set(COMPONENTS.map((c) => c.categor
 export default function App() {
   const [user, setUser] = useState<User | null>(null)
   const [checkingSession, setCheckingSession] = useState(true)
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
   const { theme, toggle } = useTheme()
 
   useEffect(() => {
     restoreSession()
-      .then(setUser)
+      .then(async (restoredUser) => {
+        setUser(restoredUser)
+        if (restoredUser) {
+          const done = await getData(ONBOARDING_DONE_KEY)
+          setNeedsOnboarding(done !== "true")
+        }
+      })
       .finally(() => setCheckingSession(false))
   }, [])
+
+  async function handleLoggedIn(loggedInUser: User) {
+    setUser(loggedInUser)
+    const done = await getData(ONBOARDING_DONE_KEY)
+    setNeedsOnboarding(done !== "true")
+  }
 
   if (checkingSession) {
     return (
@@ -171,7 +186,18 @@ export default function App() {
   }
 
   if (!user) {
-    return <Login onLoggedIn={setUser} />
+    return <Login onLoggedIn={handleLoggedIn} />
+  }
+
+  if (needsOnboarding) {
+    return (
+      <Onboarding
+        onDone={() => {
+          setDataInBackground(ONBOARDING_DONE_KEY, "true")
+          setNeedsOnboarding(false)
+        }}
+      />
+    )
   }
 
   return <Gallery user={user} onLogOut={() => setUser(null)} theme={theme} onToggleTheme={toggle} />

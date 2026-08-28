@@ -151,3 +151,77 @@ body {
   max-height: 140px; overflow-y: auto;
 }
 .toast.show { opacity: 1; transform: translateY(0); }
+
+/* ---- Onboarding ---- */
+
+.onboarding {
+  height: 100%; display: flex; flex-direction: column; background: var(--bg);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.onboarding-header { display: flex; align-items: center; gap: 12px; padding: 16px 18px; flex-shrink: 0; }
+.onboarding-back {
+  all: unset;
+  font-size: 13px !important; color: var(--text-muted) !important; cursor: pointer !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+.onboarding-back:hover { color: var(--text) !important; }
+
+.onboarding-progress { flex: 1; height: 6px; border-radius: 999px; background: var(--bg-subtle); overflow: hidden; }
+.onboarding-progress-fill { height: 100%; background: var(--accent); transition: width 0.2s ease; }
+
+.onboarding-body { flex: 1; overflow-y: auto; padding: 8px 20px 20px; }
+.onboarding-body h2 { font-size: 20px; font-weight: 700; color: var(--text); margin: 0 0 6px; }
+.onboarding-body p { font-size: 13px; color: var(--text-muted); margin: 0 0 20px; }
+
+.onboarding-list { display: flex; flex-direction: column; gap: 8px; }
+.onboarding-option {
+  all: unset;
+  box-sizing: border-box !important;
+  display: block !important; width: 100% !important; padding: 14px 16px !important;
+  border-radius: 12px !important; background: var(--bg-subtle) !important; color: var(--text) !important;
+  font-size: 14px !important; font-weight: 600 !important; cursor: pointer !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  border: 1px solid transparent !important;
+}
+.onboarding-option:hover { border-color: var(--border) !important; }
+.onboarding-option.selected {
+  background: var(--accent-soft) !important; border-color: var(--accent) !important; color: var(--accent) !important;
+}
+
+.onboarding-toggle-row { display: flex; gap: 8px; margin-bottom: 20px; }
+.onboarding-toggle {
+  all: unset;
+  box-sizing: border-box !important;
+  flex: 1 !important; text-align: center !important; padding: 12px !important;
+  border-radius: 10px !important; background: var(--bg-subtle) !important; color: var(--text) !important;
+  font-size: 13px !important; font-weight: 600 !important; cursor: pointer !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  border: 1px solid transparent !important;
+}
+.onboarding-toggle.selected {
+  background: var(--accent-soft) !important; border-color: var(--accent) !important; color: var(--accent) !important;
+}
+
+.onboarding-label {
+  display: block; font-size: 13px; font-weight: 600; color: var(--text); margin: 16px 0 8px;
+}
+.onboarding-select {
+  all: unset;
+  box-sizing: border-box !important;
+  display: block !important; width: 100% !important; padding: 10px 12px !important;
+  border-radius: 10px !important; background: var(--bg-subtle) !important; color: var(--text) !important;
+  font-size: 13px !important; cursor: pointer !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  border: 1px solid var(--border) !important;
+}
+
+.onboarding-continue {
+  all: unset;
+  box-sizing: border-box !important;
+  margin: 0 20px 20px !important; text-align: center !important; padding: 13px !important;
+  border-radius: 10px !important; background: var(--accent) !important; color: white !important;
+  font-size: 14px !important; font-weight: 700 !important; cursor: pointer !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+.onboarding-continue:disabled { opacity: 0.4 !important; cursor: default !important; }
