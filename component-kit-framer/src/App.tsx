@@ -15,6 +15,19 @@ import Boards from "./Boards"
 import Colors from "./Colors"
 import SaveDrawer from "./SaveDrawer"
 
+function categoryIcon(category: string): string {
+  switch (category) {
+    case "Sections":
+      return "🧩"
+    case "Navigation":
+      return "🧭"
+    case "Cards":
+      return "🗂️"
+    default:
+      return "✨"
+  }
+}
+
 const THEME_KEY = "theme-preference"
 type ThemePref = "light" | "dark"
 
@@ -146,6 +159,7 @@ function Gallery({ user }: { user: User }) {
   const [greetingName, setGreetingName] = useState<string>(user.email ? friendlyNameFromEmail(user.email) : "there")
   const [warmedFiles, setWarmedFiles] = useState<Set<string>>(new Set())
   const [isPro, setIsPro] = useState<boolean | null>(null)
+  const [screen, setScreen] = useState<"tiles" | "browse">("tiles")
 
   useEffect(() => {
     getFullName(user.id).then((name) => {
@@ -198,6 +212,13 @@ function Gallery({ user }: { user: User }) {
     return ["All", ...Array.from(new Set(components.map((c) => c.category)))]
   }, [components])
 
+  const categoryCounts = useMemo(() => {
+    if (!components) return []
+    const counts = new Map<string, number>()
+    for (const c of components) counts.set(c.category, (counts.get(c.category) ?? 0) + 1)
+    return Array.from(counts.entries())
+  }, [components])
+
   const items = useMemo(() => {
     if (!components) return []
     const term = searchTerm.toLowerCase()
@@ -242,53 +263,95 @@ function Gallery({ user }: { user: User }) {
 
   return (
     <div className="app">
-      <div className="greeting">
-        <div className="greeting-title">Hey, {greetingName}</div>
-        <div className="greeting-subtitle">What will you build today?</div>
-      </div>
+      {screen === "tiles" ? (
+        <>
+          <div className="greeting">
+            <div className="greeting-title">Hey, {greetingName}</div>
+            <div className="greeting-subtitle">What will you build today?</div>
+          </div>
 
-      <div className="header">
-        <input
-          className="search"
-          placeholder="Search components…"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+          <div className="tiles">
+            <button
+              className="tile tile-browse"
+              onClick={() => {
+                setActiveCategory("All")
+                setScreen("browse")
+              }}
+            >
+              <div className="tile-icon">✨</div>
+              <div className="tile-name">Browse all</div>
+              <div className="tile-count">{components ? `${components.length} components` : "…"}</div>
+            </button>
 
-      <div className="categories">
-        {categories.map((c) => (
-          <button
-            key={c}
-            className={`cat-btn ${c === activeCategory ? "active" : ""}`}
-            onClick={() => setActiveCategory(c)}
-          >
-            {c}
-          </button>
-        ))}
-      </div>
+            {categoryCounts.map(([category, count]) => (
+              <button
+                key={category}
+                className="tile"
+                onClick={() => {
+                  setActiveCategory(category)
+                  setScreen("browse")
+                }}
+              >
+                <div className="tile-icon">{categoryIcon(category)}</div>
+                <div className="tile-name">{category}</div>
+                <div className="tile-count">{count} components</div>
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="browse-header">
+            <button className="browse-back" onClick={() => setScreen("tiles")}>
+              ‹ Home
+            </button>
+            <span className="browse-title">{activeCategory === "All" ? "All components" : activeCategory}</span>
+          </div>
 
-      <div className="list">
-        {loadError ? (
-          <div className="empty">{loadError}</div>
-        ) : !components ? (
-          Array.from({ length: 6 }).map((_, i) => <div key={i} className="card skeleton" />)
-        ) : items.length === 0 ? (
-          <div className="empty">No components match your search.</div>
-        ) : (
-          items.map((c) => (
-            <GalleryCard
-              key={c.id}
-              component={c}
-              busy={busyId === c.id}
-              locked={!!(c.is_pro && isPro === false)}
-              warmed={warmedFiles.has(c.file_name)}
-              onOpenDetail={() => setDetailComponent(c)}
-              onSave={() => setSavingComponent(c)}
+          <div className="header">
+            <input
+              className="search"
+              placeholder="Search components…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-          ))
-        )}
-      </div>
+          </div>
+
+          <div className="categories">
+            {categories.map((c) => (
+              <button
+                key={c}
+                className={`cat-btn ${c === activeCategory ? "active" : ""}`}
+                onClick={() => setActiveCategory(c)}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+
+          <div className="list">
+            {loadError ? (
+              <div className="empty">{loadError}</div>
+            ) : !components ? (
+              Array.from({ length: 6 }).map((_, i) => <div key={i} className="card skeleton" />)
+            ) : items.length === 0 ? (
+              <div className="empty">No components match your search.</div>
+            ) : (
+              items.map((c) => (
+                <GalleryCard
+                  key={c.id}
+                  component={c}
+                  busy={busyId === c.id}
+                  locked={!!(c.is_pro && isPro === false)}
+                  warmed={warmedFiles.has(c.file_name)}
+                  onOpenDetail={() => setDetailComponent(c)}
+                  onSave={() => setSavingComponent(c)}
+                />
+              ))
+            )}
+          </div>
+        </>
+      )}
 
       <div className={`toast ${toast ? "show" : ""}`}>{toast}</div>
 
