@@ -29,3 +29,19 @@ export async function completeOnboarding(userId: string, answers: OnboardingAnsw
     console.warn("Failed to save onboarding completion:", error.message)
   }
 }
+
+export async function getFullName(userId: string): Promise<string | null> {
+  const { data, error } = await supabase.from("profiles").select("full_name").eq("id", userId).single()
+  if (error) return null
+  return data?.full_name ?? null
+}
+
+/** Falls back to a cleaned-up guess from the email's local part when no name is set yet —
+ * e.g. "jordan.lee92@gmail.com" -> "Jordan". Replaced once a real account page lets users
+ * set their actual name. */
+export function friendlyNameFromEmail(email: string): string {
+  const local = email.split("@")[0]
+  const cleaned = local.replace(/[0-9._-]+$/g, "").split(/[._-]/)[0]
+  if (!cleaned) return "there"
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
+}

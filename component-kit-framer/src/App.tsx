@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import { insertComponent } from "./nodeBuilders"
-import { restoreSession, signOut } from "./lib/auth"
+import { restoreSession } from "./lib/auth"
 import { getData, setDataInBackground } from "./lib/pluginStorage"
 import { fetchComponents, type ComponentRow } from "./lib/components"
-import { getOnboardingStatus } from "./lib/profile"
+import { getOnboardingStatus, getFullName, friendlyNameFromEmail } from "./lib/profile"
 import Login from "./Login"
 import Onboarding from "./Onboarding"
+import Settings from "./Settings"
 
 const THEME_KEY = "theme-preference"
 type ThemePref = "light" | "dark"
@@ -83,10 +84,10 @@ export default function App() {
     return <Onboarding userId={user.id} onDone={() => setNeedsOnboarding(false)} />
   }
 
-  return <Gallery user={user} onLogOut={() => setUser(null)} theme={theme} onToggleTheme={toggle} />
+  return <Shell user={user} onLogOut={() => setUser(null)} theme={theme} onToggleTheme={toggle} />
 }
 
-function Gallery({
+function Shell({
   user,
   onLogOut,
   theme,
@@ -97,12 +98,39 @@ function Gallery({
   theme: ThemePref
   onToggleTheme: () => void
 }) {
+  const [view, setView] = useState<"home" | "settings">("home")
+
+  return (
+    <div className="shell">
+      <div className="shell-content">
+        {view === "home" ? <Gallery user={user} /> : <Settings user={user} theme={theme} onToggleTheme={onToggleTheme} onLogOut={onLogOut} />}
+      </div>
+      <div className="bottom-nav">
+        <button className={`nav-btn ${view === "home" ? "active" : ""}`} onClick={() => setView("home")}>
+          🏠 Home
+        </button>
+        <button className={`nav-btn ${view === "settings" ? "active" : ""}`} onClick={() => setView("settings")}>
+          ⚙️ Settings
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function Gallery({ user }: { user: User }) {
   const [components, setComponents] = useState<ComponentRow[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState("All")
   const [searchTerm, setSearchTerm] = useState("")
   const [toast, setToast] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [greetingName, setGreetingName] = useState<string>(user.email ? friendlyNameFromEmail(user.email) : "there")
+
+  useEffect(() => {
+    getFullName(user.id).then((name) => {
+      if (name) setGreetingName(name)
+    })
+  }, [user.id])
 
   useEffect(() => {
     fetchComponents()
@@ -149,24 +177,12 @@ function Gallery({
 
   return (
     <div className="app">
+      <div className="greeting">
+        <div className="greeting-title">Hey, {greetingName}</div>
+        <div className="greeting-subtitle">What will you build today?</div>
+      </div>
+
       <div className="header">
-        <div className="brand">
-          <div className="brand-mark">CK</div>
-          <div className="brand-name">Component Kit</div>
-          <button className="theme-btn" title="Toggle theme" onClick={onToggleTheme}>
-            {theme === "dark" ? "☀️" : "🌙"}
-          </button>
-          <button
-            className="logout-btn"
-            title={user.email ?? "Account"}
-            onClick={async () => {
-              await signOut()
-              onLogOut()
-            }}
-          >
-            Log out
-          </button>
-        </div>
         <input
           className="search"
           placeholder="Search components…"
