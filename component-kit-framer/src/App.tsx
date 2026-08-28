@@ -381,10 +381,14 @@ function ComponentDetail({
     <div className="drawer-backdrop" onClick={onClose}>
       <div className="drawer detail-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="drawer-handle" />
-        <div
-          className={`detail-preview ${locked ? "detail-preview-locked" : ""}`}
-          dangerouslySetInnerHTML={{ __html: component.preview_svg }}
-        />
+        <div className="detail-preview-wrap">
+          <div className="detail-preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
+          {locked && (
+            <div className="preview-lock detail-preview-lock">
+              <div className="preview-lock-icon">🔒</div>
+            </div>
+          )}
+        </div>
         <div className="detail-title-row">
           <span className="drawer-title">{component.name}</span>
           {component.is_pro && <span className="pro-badge">PRO</span>}

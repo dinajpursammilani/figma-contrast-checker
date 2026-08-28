@@ -115,16 +115,23 @@ export default function Boards() {
     if (items.length === 0) {
       return <div className="empty">Nothing saved here yet.</div>
     }
-    return items.map((item) => (
-      <div key={item.id} className={`card ${busyId === item.id ? "busy" : ""}`} onClick={() => handleInsert(item)}>
-        <div className="preview" dangerouslySetInnerHTML={{ __html: item.component.preview_svg }} />
-        <div className="card-footer">
-          <span className="card-name">
-            {item.component.name}
-            {item.component.is_pro && <span className="pro-badge">PRO</span>}
-          </span>
+    return items.map((item) => {
+      const locked = item.component.is_pro && !isPro
+      return (
+        <div
+          key={item.id}
+          className={`card ${busyId === item.id ? "busy" : ""} ${locked ? "locked" : ""}`}
+          onClick={() => handleInsert(item)}
+        >
+          <div className="preview" dangerouslySetInnerHTML={{ __html: item.component.preview_svg }} />
+          {locked && (
+            <div className="preview-lock">
+              <div className="preview-lock-icon">🔒</div>
+            </div>
+          )}
           <button
             className="unsave-btn"
+            title="Remove"
             onClick={(e) => {
               e.stopPropagation()
               handleUnsave(item)
@@ -132,9 +139,15 @@ export default function Boards() {
           >
             ✕
           </button>
+          <div className="card-footer">
+            <span className="card-name">
+              {item.component.name}
+              {item.component.is_pro && <span className="pro-badge">PRO</span>}
+            </span>
+          </div>
         </div>
-      </div>
-    ))
+      )
+    })
   }
 
   if (openBoard) {
