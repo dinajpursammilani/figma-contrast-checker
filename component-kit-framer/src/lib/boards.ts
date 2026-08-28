@@ -1,5 +1,5 @@
 import { supabase } from "./supabase"
-import type { ComponentRow } from "./components"
+import { COMPONENT_COLUMNS, type ComponentRow } from "./components"
 
 export interface Board {
   id: string
@@ -43,7 +43,9 @@ export async function deleteBoard(boardId: string): Promise<void> {
 
 /** Pass boardId to get just that board's items, or omit for every saved item (the "All saved" view). */
 export async function fetchSavedItems(boardId?: string): Promise<SavedItem[]> {
-  let query = supabase.from("saved_items").select("id, component_id, board_id, component:components(*)")
+  let query = supabase
+    .from("saved_items")
+    .select(`id, component_id, board_id, component:components(${COMPONENT_COLUMNS})`)
 
   if (boardId) query = query.eq("board_id", boardId)
 

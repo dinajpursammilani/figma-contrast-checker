@@ -5,6 +5,8 @@ import { insertComponent, warmInsertUrl, getCachedInsertUrl } from "./nodeBuilde
 import { restoreSession } from "./lib/auth"
 import { getData, setDataInBackground } from "./lib/pluginStorage"
 import { fetchComponents, type ComponentRow } from "./lib/components"
+import { fetchComponentSource } from "./lib/componentSource"
+import { getProStatus, startCheckout } from "./lib/payments"
 import { getOnboardingStatus, getFullName, friendlyNameFromEmail } from "./lib/profile"
 import Login from "./Login"
 import Onboarding from "./Onboarding"
@@ -138,12 +140,29 @@ function Gallery({ user }: { user: User }) {
   const [detailComponent, setDetailComponent] = useState<ComponentRow | null>(null)
   const [greetingName, setGreetingName] = useState<string>(user.email ? friendlyNameFromEmail(user.email) : "there")
   const [warmedFiles, setWarmedFiles] = useState<Set<string>>(new Set())
+  const [isPro, setIsPro] = useState<boolean | null>(null)
 
   useEffect(() => {
     getFullName(user.id).then((name) => {
       if (name) setGreetingName(name)
     })
   }, [user.id])
+
+  useEffect(() => {
+    getProStatus().then(setIsPro)
+
+    // Same reasoning as Settings: checkout happens in a separate tab, so refetch on refocus
+    // instead of requiring a manual reload to unlock Pro components after paying.
+    function refetch() {
+      if (document.visibilityState === "visible") getProStatus().then(setIsPro)
+    }
+    document.addEventListener("visibilitychange", refetch)
+    window.addEventListener("focus", refetch)
+    return () => {
+      document.removeEventListener("visibilitychange", refetch)
+      window.removeEventListener("focus", refetch)
+    }
+  }, [])
 
   useEffect(() => {
     fetchComponents()
@@ -153,14 +172,21 @@ function Gallery({ user }: { user: User }) {
 
   // Drag-to-canvas needs the insert URL synchronously (drag data can't be a promise), so
   // pre-create every visible component's code file up front instead of waiting for a click.
+  // Locked Pro components (isPro not yet true) are deliberately skipped — their source only
+  // ever reaches the client via the gated get-component-source function, and only once the
+  // caller is actually on the Pro plan, so they never become draggable for a free user.
   useEffect(() => {
-    if (!components) return
+    if (!components || isPro === null) return
     components.forEach((c) => {
-      warmInsertUrl(c.file_name, c.tsx_source).then((url) => {
-        if (url) setWarmedFiles((prev) => new Set(prev).add(c.file_name))
+      if (c.is_pro && !isPro) return
+      fetchComponentSource(c.id).then((src) => {
+        if (!src) return
+        warmInsertUrl(src.file_name, src.tsx_source).then((url) => {
+          if (url) setWarmedFiles((prev) => new Set(prev).add(c.file_name))
+        })
       })
     })
-  }, [components])
+  }, [components, isPro])
 
   const categories = useMemo(() => {
     if (!components) return ["All"]
@@ -180,7 +206,9 @@ function Gallery({ user }: { user: User }) {
   async function handleInsert(component: ComponentRow) {
     setBusyId(component.id)
     try {
-      await insertComponent(component.file_name, component.tsx_source)
+      const src = await fetchComponentSource(component.id)
+      if (!src) throw new Error("Upgrade to Pro to insert this component")
+      await insertComponent(src.file_name, src.tsx_source)
       showToast(`Inserted "${component.name}"`)
     } catch (err) {
       const message = err instanceof Error ? err.message : "Couldn't insert — try again"
@@ -188,6 +216,14 @@ function Gallery({ user }: { user: User }) {
       console.error(err)
     } finally {
       setBusyId(null)
+    }
+  }
+
+  async function handleUpgradeClick() {
+    try {
+      await startCheckout()
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Couldn't start checkout — try again")
     }
   }
 
@@ -236,6 +272,7 @@ function Gallery({ user }: { user: User }) {
           <div className="empty">No components match your search.</div>
         ) : (
           items.map((c) => {
+            const locked = c.is_pro && isPro === false
             const card = (
               <div className={`card ${busyId === c.id ? "busy" : ""}`} onClick={() => setDetailComponent(c)}>
                 <div className="preview" dangerouslySetInnerHTML={{ __html: c.preview_svg }} />
@@ -255,7 +292,13 @@ function Gallery({ user }: { user: User }) {
                     {c.is_pro && <span className="pro-badge">PRO</span>}
                   </span>
                   <span className="insert-hint">
-                    {busyId === c.id ? "Inserting…" : warmedFiles.has(c.file_name) ? "Drag to insert" : "Loading…"}
+                    {busyId === c.id
+                      ? "Inserting…"
+                      : locked
+                        ? "Upgrade to unlock"
+                        : warmedFiles.has(c.file_name)
+                          ? "Drag to insert"
+                          : "Loading…"}
                   </span>
                 </div>
               </div>
@@ -295,8 +338,10 @@ function Gallery({ user }: { user: User }) {
         <ComponentDetail
           component={detailComponent}
           busy={busyId === detailComponent.id}
+          locked={detailComponent.is_pro && isPro === false}
           onClose={() => setDetailComponent(null)}
           onInsert={() => handleInsert(detailComponent)}
+          onUpgrade={handleUpgradeClick}
           onSave={() => {
             setSavingComponent(detailComponent)
             setDetailComponent(null)
@@ -310,14 +355,18 @@ function Gallery({ user }: { user: User }) {
 function ComponentDetail({
   component,
   busy,
+  locked,
   onClose,
   onInsert,
+  onUpgrade,
   onSave,
 }: {
   component: ComponentRow
   busy: boolean
+  locked: boolean
   onClose: () => void
   onInsert: () => void
+  onUpgrade: () => void
   onSave: () => void
 }) {
   return (
@@ -331,15 +380,31 @@ function ComponentDetail({
         </div>
         <div className="detail-category">{component.category}</div>
 
-        <div className="detail-actions">
-          <button className="detail-save-btn" onClick={onSave}>
-            🔖 Save
-          </button>
-          <button className="detail-insert-btn" onClick={onInsert} disabled={busy}>
-            {busy ? "Inserting…" : "Insert"}
-          </button>
-        </div>
-        <div className="detail-hint">Or drag the card straight onto the canvas.</div>
+        {locked ? (
+          <>
+            <div className="detail-actions">
+              <button className="detail-save-btn" onClick={onSave}>
+                🔖 Save
+              </button>
+              <button className="detail-insert-btn" onClick={onUpgrade}>
+                Upgrade to Pro →
+              </button>
+            </div>
+            <div className="detail-hint">This is a Pro component — upgrade to insert it.</div>
+          </>
+        ) : (
+          <>
+            <div className="detail-actions">
+              <button className="detail-save-btn" onClick={onSave}>
+                🔖 Save
+              </button>
+              <button className="detail-insert-btn" onClick={onInsert} disabled={busy}>
+                {busy ? "Inserting…" : "Insert"}
+              </button>
+            </div>
+            <div className="detail-hint">Or drag the card straight onto the canvas.</div>
+          </>
+        )}
 
         <button className="drawer-done" onClick={onClose}>
           Close

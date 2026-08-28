@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react"
 import { insertComponent } from "./nodeBuilders"
+import { fetchComponentSource } from "./lib/componentSource"
+import { getProStatus } from "./lib/payments"
 import {
   fetchBoards,
   fetchSavedItems,
@@ -20,9 +22,11 @@ export default function Boards() {
   const [toast, setToast] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isPro, setIsPro] = useState<boolean | null>(null)
 
   useEffect(() => {
     loadRoot()
+    getProStatus().then(setIsPro)
   }, [])
 
   function loadRoot() {
@@ -69,9 +73,15 @@ export default function Boards() {
   }
 
   async function handleInsert(item: SavedItem) {
+    if (item.component.is_pro && !isPro) {
+      showToast("Upgrade to Pro to insert this component")
+      return
+    }
     setBusyId(item.id)
     try {
-      await insertComponent(item.component.file_name, item.component.tsx_source)
+      const src = await fetchComponentSource(item.component.id)
+      if (!src) throw new Error("Upgrade to Pro to insert this component")
+      await insertComponent(src.file_name, src.tsx_source)
       showToast(`Inserted "${item.component.name}"`)
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Couldn't insert — try again")
@@ -109,7 +119,10 @@ export default function Boards() {
       <div key={item.id} className={`card ${busyId === item.id ? "busy" : ""}`} onClick={() => handleInsert(item)}>
         <div className="preview" dangerouslySetInnerHTML={{ __html: item.component.preview_svg }} />
         <div className="card-footer">
-          <span className="card-name">{item.component.name}</span>
+          <span className="card-name">
+            {item.component.name}
+            {item.component.is_pro && <span className="pro-badge">PRO</span>}
+          </span>
           <button
             className="unsave-btn"
             onClick={(e) => {

@@ -1,7 +1,12 @@
 import { supabase } from "./supabase"
 
-export async function getProStatus(userId: string): Promise<boolean> {
-  const { data, error } = await supabase.from("profiles").select("is_pro").eq("id", userId).single()
+export async function getProStatus(): Promise<boolean> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return false
+
+  const { data, error } = await supabase.from("profiles").select("is_pro").eq("id", user.id).single()
   if (error) return false
   return data?.is_pro ?? false
 }

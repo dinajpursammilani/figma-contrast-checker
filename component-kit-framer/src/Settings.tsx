@@ -25,12 +25,12 @@ export default function Settings({
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   useEffect(() => {
-    getProStatus(user.id).then(setIsPro)
+    getProStatus().then(setIsPro)
 
     // Payment happens in a separate browser tab, so there's no way to push the result back in —
     // instead, refetch whenever the user switches focus back to Framer after checking out.
     function refetch() {
-      if (document.visibilityState === "visible") getProStatus(user.id).then(setIsPro)
+      if (document.visibilityState === "visible") getProStatus().then(setIsPro)
     }
     document.addEventListener("visibilitychange", refetch)
     window.addEventListener("focus", refetch)
