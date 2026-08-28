@@ -39,6 +39,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null)
   const [checkingSession, setCheckingSession] = useState(true)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
+  const [checkingOnboarding, setCheckingOnboarding] = useState(false)
   const { theme, toggle } = useTheme()
 
   useEffect(() => {
@@ -55,11 +56,16 @@ export default function App() {
 
   async function handleLoggedIn(loggedInUser: User) {
     setUser(loggedInUser)
-    const done = await getOnboardingStatus(loggedInUser.id)
-    setNeedsOnboarding(!done)
+    setCheckingOnboarding(true)
+    try {
+      const done = await getOnboardingStatus(loggedInUser.id)
+      setNeedsOnboarding(!done)
+    } finally {
+      setCheckingOnboarding(false)
+    }
   }
 
-  if (checkingSession) {
+  if (checkingSession || checkingOnboarding) {
     return (
       <div className="app">
         <div className="empty" style={{ marginTop: 120 }}>
