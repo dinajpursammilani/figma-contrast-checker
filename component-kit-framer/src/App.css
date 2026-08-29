@@ -616,11 +616,13 @@ body {
 .settings-muted { font-size: 13px; color: var(--text-muted); margin: 0; }
 
 .settings-input {
-  width: 100%; box-sizing: border-box; margin: 8px 0; padding: 8px 10px;
-  border-radius: 8px; border: 1px solid var(--border); background: var(--bg);
-  color: var(--text); font-size: 13px; font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  all: unset;
+  -webkit-appearance: none !important; appearance: none !important;
+  width: 100% !important; box-sizing: border-box !important; margin: 8px 0 !important; padding: 8px 10px !important;
+  border-radius: 8px !important; border: 1px solid var(--border) !important; background: var(--bg) !important;
+  color: var(--text) !important; font-size: 13px !important; font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
-.settings-input:focus { outline: none; border-color: var(--accent); }
+.settings-input:focus { outline: none !important; border-color: var(--accent) !important; }
 
 /* ---- Save button on gallery cards ---- */
 
