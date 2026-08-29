@@ -2,7 +2,8 @@ import { useEffect, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import { signOut } from "./lib/auth"
 import { getProStatus, startCheckout } from "./lib/payments"
-import { MoonIcon, SunIcon } from "./icons"
+import { getFullName } from "./lib/profile"
+import { MoonIcon, SunIcon, CrownIcon } from "./icons"
 
 type ThemePref = "light" | "dark"
 
@@ -24,6 +25,11 @@ export default function Settings({
   const [isPro, setIsPro] = useState<boolean | null>(null)
   const [checkingOut, setCheckingOut] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [fullName, setFullName] = useState<string | null>(null)
+
+  useEffect(() => {
+    getFullName(user.id).then(setFullName)
+  }, [user.id])
 
   useEffect(() => {
     getProStatus().then(setIsPro)
@@ -57,6 +63,12 @@ export default function Settings({
     <div className="settings">
       <div className="settings-section">
         <h3>Account</h3>
+        {fullName && (
+          <div className="settings-row">
+            <span>Name</span>
+            <span className="settings-value">{fullName}</span>
+          </div>
+        )}
         <div className="settings-row">
           <span>Email</span>
           <span className="settings-value">{user.email}</span>
@@ -71,18 +83,32 @@ export default function Settings({
 
       <div className="settings-section">
         <h3>Plan</h3>
-        <div className="settings-row">
-          <span>Current plan</span>
-          <span className="settings-value">{isPro === null ? "…" : isPro ? "Pro" : "Free"}</span>
-        </div>
-        {isPro === false && (
-          <button className="settings-toggle" onClick={handleUpgrade} disabled={checkingOut}>
-            {checkingOut ? "Opening checkout…" : "Upgrade to Pro →"}
-          </button>
-        )}
-        {checkoutError && <p className="settings-muted">{checkoutError}</p>}
-        {isPro === false && (
-          <p className="settings-muted">Checkout opens in your browser — once you're done, switch back to Framer and this updates automatically.</p>
+        {isPro ? (
+          <div className="pro-card">
+            <div className="pro-card-crown">
+              <CrownIcon />
+            </div>
+            <div>
+              <div className="pro-card-title">Pro member</div>
+              <div className="pro-card-sub">Every component, unlocked</div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="settings-row">
+              <span>Current plan</span>
+              <span className="settings-value">{isPro === null ? "…" : "Free"}</span>
+            </div>
+            {isPro === false && (
+              <button className="settings-toggle" onClick={handleUpgrade} disabled={checkingOut}>
+                {checkingOut ? "Opening checkout…" : "Upgrade to Pro →"}
+              </button>
+            )}
+            {checkoutError && <p className="settings-muted">{checkoutError}</p>}
+            {isPro === false && (
+              <p className="settings-muted">Checkout opens in your browser — once you're done, switch back to Framer and this updates automatically.</p>
+            )}
+          </>
         )}
       </div>
 

@@ -8,6 +8,7 @@
   --bg: #ffffff;
   --bg-subtle: #f6f6f7;
   --card-bg: #fafafa;
+  --card-bg-2: #f0f0f1;
   --text: #17171a;
   --text-muted: #6f6f75;
   --border: #e8e8ea;
@@ -22,17 +23,20 @@
   --scrim: rgba(255, 255, 255, 0.82);
 }
 :root[data-theme="dark"] {
-  --bg: #232325;
-  --bg-subtle: #1c1c1e;
-  --card-bg: #2a2a2d;
+  /* True black chrome, with cards/rows a step up in lightness — reads as a dev tool
+     (Framer/Linear's own dark UI) rather than the flat mid-gray most apps default to. */
+  --bg: #050505;
+  --bg-subtle: #0f0f10;
+  --card-bg: #17171a;
+  --card-bg-2: #1e1e22;
   --text: #f1f1f2;
-  --text-muted: #a3a3a7;
-  --border: #38383b;
+  --text-muted: #8f8f96;
+  --border: #26262a;
   --accent: #8b93ff;
-  --accent-soft: #2a2b4d;
+  --accent-soft: #23244a;
   --pro: #e3ac4d;
-  --pro-soft: #3a2f1c;
-  --scrim: rgba(28, 28, 30, 0.82);
+  --pro-soft: #2e2717;
+  --scrim: rgba(5, 5, 5, 0.82);
 }
 
 html, body, #root { height: 100%; margin: 0; }
@@ -128,23 +132,67 @@ body {
 
 /* ---- Home tiles (category picker) ---- */
 
-.tiles { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.tiles { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+
 .tile {
   all: unset;
   box-sizing: border-box !important;
-  display: flex !important; align-items: center !important; gap: 12px !important;
-  padding: 14px !important; border-radius: 12px !important;
-  background: var(--card-bg) !important; border: 1px solid var(--border) !important;
+  position: relative !important; display: block !important; overflow: hidden !important;
+  border-radius: 14px !important; background: var(--card-bg) !important; border: 1px solid var(--border) !important;
   cursor: pointer !important; text-align: left !important;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
-  transition: border-color 0.12s ease, transform 0.12s ease !important;
+  transition: border-color 0.12s ease !important;
 }
-.tile:hover { border-color: var(--accent) !important; transform: translateY(-1px) !important; }
-.tile-browse { background: var(--accent-soft) !important; border-color: transparent !important; }
-.tile-icon { flex-shrink: 0; color: var(--accent); }
-.tile-icon svg { width: 20px; height: 20px; display: block; }
-.tile-name { font-size: 13px; font-weight: 700; color: var(--text); flex: 1; }
-.tile-count { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+.tile:hover { border-color: var(--accent) !important; }
+
+/* Blueprint decoration: an oversized, faded, rotated sample of one of the category's own real
+   preview SVGs — ties the tile's visual interest to actual content instead of a generic
+   graphic, and reads as our own identity rather than borrowing another product's motif. */
+.blueprint { position: absolute; opacity: 0.16; pointer-events: none; }
+.blueprint svg { width: 100%; height: 100%; }
+.blueprint-hero { width: 190px; height: 140px; right: -30px; top: -18px; transform: rotate(8deg); }
+.blueprint-small { width: 110px; height: 80px; right: -18px; bottom: -14px; transform: rotate(-6deg); }
+
+.tile-hero { height: 130px; padding: 14px !important; }
+.tile-small { height: 96px; padding: 12px !important; }
+
+.tile-badge {
+  position: relative; z-index: 2; width: 30px; height: 30px; border-radius: 9px;
+  background: var(--accent-soft); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+}
+.tile-badge svg { width: 15px; height: 15px; display: block; }
+.tile-small .tile-badge { width: 26px; height: 26px; }
+.tile-small .tile-badge svg { width: 13px; height: 13px; }
+
+.tile-text { position: relative; z-index: 2; margin-top: 34px; }
+.tile-small .tile-text { margin-top: 12px; }
+.tile-name { font-size: 14.5px; font-weight: 700; color: var(--text); }
+.tile-small .tile-name { font-size: 13px; }
+.tile-count { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+.tiles-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.promo {
+  border-radius: 14px; padding: 16px 16px 20px;
+  background: linear-gradient(135deg, #262a56, #1b1d3a); border: 1px solid #34386e;
+}
+.promo h3 { font-size: 14px; font-weight: 700; margin: 0 0 4px; color: #eef0ff; }
+.promo p { font-size: 11.5px; color: #b7bcf2; margin: 0 0 14px; max-width: 220px; line-height: 1.5; }
+.promo-btn {
+  all: unset;
+  box-sizing: border-box !important;
+  font-size: 12px !important; font-weight: 700 !important; background: #fff !important; color: #1b1d3a !important;
+  padding: 9px 16px !important; border-radius: 999px !important; cursor: pointer !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.nav-pro-dot {
+  position: absolute !important; top: 6px !important; right: 26px !important;
+  width: 7px !important; height: 7px !important; border-radius: 999px !important;
+  background: var(--pro) !important; box-shadow: 0 0 0 2px var(--bg) !important;
+  opacity: 1 !important; pointer-events: none !important; transform: none !important;
+}
 
 .browse-header {
   display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border);
@@ -432,6 +480,18 @@ body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
+.pro-card {
+  display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px;
+  background: linear-gradient(135deg, #3a2d10, #241c0a); border: 1px solid #5a4318;
+}
+.pro-card-crown {
+  width: 34px; height: 34px; border-radius: 999px; background: #4a3814; color: var(--pro);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.pro-card-crown svg { width: 17px; height: 17px; }
+.pro-card-title { font-size: 13px; font-weight: 700; color: var(--pro); }
+.pro-card-sub { font-size: 11px; color: #c9a86a; margin-top: 1px; }
+
 .settings-danger {
   all: unset;
   box-sizing: border-box !important;
@@ -571,12 +631,26 @@ body {
 .board-item {
   all: unset;
   box-sizing: border-box !important;
-  display: block !important; width: 100% !important; padding: 10px 12px !important;
+  display: flex !important; align-items: center !important; gap: 8px !important;
+  width: 100% !important; padding: 10px 12px !important;
   border-radius: 8px !important; background: var(--bg-subtle) !important; color: var(--text) !important;
   font-size: 13px !important; font-weight: 600 !important; cursor: pointer !important;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 .board-item:hover { background: var(--accent-soft) !important; }
+.board-item svg { flex-shrink: 0; color: var(--text-muted); }
+
+.empty-state {
+  grid-column: 1 / -1; flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center; padding: 30px 24px; gap: 12px;
+}
+.empty-state-badge {
+  width: 52px; height: 52px; border-radius: 14px; background: var(--card-bg-2);
+  display: flex; align-items: center; justify-content: center; color: var(--text-muted);
+}
+.empty-state-badge svg { width: 24px; height: 24px; }
+.empty-state h2 { font-size: 14px; font-weight: 700; margin: 0; color: var(--text); }
+.empty-state p { font-size: 12px; color: var(--text-muted); margin: 0; max-width: 240px; line-height: 1.5; }
 
 .unsave-btn {
   all: unset;

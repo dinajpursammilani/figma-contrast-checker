@@ -162,6 +162,22 @@ export function SunIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function FolderIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M4 7.5a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
+    </Icon>
+  )
+}
+
+export function CrownIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="m4 8 3.5 3L12 5l4.5 6L20 8l-1.5 10h-13Z" />
+    </Icon>
+  )
+}
+
 export function categoryIconFor(category: string) {
   switch (category) {
     case "Sections":

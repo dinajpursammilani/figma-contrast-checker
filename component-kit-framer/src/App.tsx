@@ -186,7 +186,7 @@ function Shell({
   return (
     <div className="shell">
       <div className="shell-content">
-        {view === "home" && <Home user={user} components={components} onOpenCategory={openBuild} />}
+        {view === "home" && <Home user={user} components={components} isPro={isPro} onOpenCategory={openBuild} />}
         {view === "build" && (
           <Browse
             components={components}
@@ -221,6 +221,7 @@ function Shell({
         </button>
         <button className={`nav-btn ${view === "settings" ? "active" : ""}`} onClick={() => setView("settings")}>
           <SettingsIcon />
+          {isPro && <span className="nav-pro-dot" />}
           <span>Settings</span>
         </button>
       </div>
@@ -231,12 +232,22 @@ function Shell({
 function Home({
   user,
   components,
+  isPro,
   onOpenCategory,
 }: {
   user: User
   components: ComponentRow[] | null
+  isPro: boolean | null
   onOpenCategory: (category: string | null) => void
 }) {
+  async function handleUpgrade() {
+    try {
+      await startCheckout()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   const [greetingName, setGreetingName] = useState<string>(user.email ? friendlyNameFromEmail(user.email) : "there")
 
   useEffect(() => {
@@ -252,6 +263,13 @@ function Home({
     return Array.from(counts.entries())
   }, [components])
 
+  // A real sample preview per tile, oversized/rotated/faded as a "blueprint" decoration —
+  // ties the tile's visual interest to our actual content instead of a generic graphic.
+  const heroSample = components?.[0]
+  function sampleFor(category: string) {
+    return components?.find((c) => c.category === category)
+  }
+
   return (
     <div className="app">
       <div className="greeting">
@@ -260,26 +278,49 @@ function Home({
       </div>
 
       <div className="tiles">
-        <button className="tile tile-browse" onClick={() => onOpenCategory(null)}>
-          <div className="tile-icon">
+        <button className="tile tile-hero" onClick={() => onOpenCategory(null)}>
+          {heroSample && (
+            <div className="blueprint blueprint-hero" dangerouslySetInnerHTML={{ __html: heroSample.preview_svg }} />
+          )}
+          <div className="tile-badge">
             <SparkleIcon />
           </div>
-          <div className="tile-name">Browse all</div>
-          <div className="tile-count">{components ? `${components.length} components` : "…"}</div>
+          <div className="tile-text">
+            <div className="tile-name">Browse all</div>
+            <div className="tile-count">{components ? `${components.length} components` : "…"}</div>
+          </div>
         </button>
 
-        {categoryCounts.map(([category, count]) => {
-          const CategoryIcon = categoryIconFor(category)
-          return (
-            <button key={category} className="tile" onClick={() => onOpenCategory(category)}>
-              <div className="tile-icon">
-                <CategoryIcon />
-              </div>
-              <div className="tile-name">{category}</div>
-              <div className="tile-count">{count} components</div>
+        <div className="tiles-row">
+          {categoryCounts.map(([category, count]) => {
+            const CategoryIcon = categoryIconFor(category)
+            const sample = sampleFor(category)
+            return (
+              <button key={category} className="tile tile-small" onClick={() => onOpenCategory(category)}>
+                {sample && (
+                  <div className="blueprint blueprint-small" dangerouslySetInnerHTML={{ __html: sample.preview_svg }} />
+                )}
+                <div className="tile-badge">
+                  <CategoryIcon />
+                </div>
+                <div className="tile-text">
+                  <div className="tile-name">{category}</div>
+                  <div className="tile-count">{count} components</div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        {isPro === false && (
+          <div className="promo">
+            <h3>Unlock every component</h3>
+            <p>Pro components, saved boards, and the color tool — all in one plan.</p>
+            <button className="promo-btn" onClick={handleUpgrade}>
+              Upgrade to Pro
             </button>
-          )
-        })}
+          </div>
+        )}
       </div>
     </div>
   )

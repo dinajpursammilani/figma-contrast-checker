@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { insertComponent } from "./nodeBuilders"
 import { fetchComponentSource } from "./lib/componentSource"
-import { LockIcon } from "./icons"
+import { LockIcon, FolderIcon, BookmarkIcon } from "./icons"
 import { getProStatus } from "./lib/payments"
 import {
   fetchBoards,
@@ -12,6 +12,24 @@ import {
   type Board,
   type SavedItem,
 } from "./lib/boards"
+
+function EmptyState({
+  icon,
+  title,
+  subtitle,
+}: {
+  icon: ReactNode
+  title: string
+  subtitle: string
+}) {
+  return (
+    <div className="empty-state">
+      <div className="empty-state-badge">{icon}</div>
+      <h2>{title}</h2>
+      <p>{subtitle}</p>
+    </div>
+  )
+}
 
 export default function Boards() {
   const [boards, setBoards] = useState<Board[] | null>(null)
@@ -109,12 +127,14 @@ export default function Boards() {
     toastTimer = setTimeout(() => setToast(null), 1800)
   }
 
-  function renderSavedGrid(items: SavedItem[] | null) {
+  function renderSavedGrid(items: SavedItem[] | null, emptyMessage: string) {
     if (!items) {
       return Array.from({ length: 4 }).map((_, i) => <div key={i} className="card skeleton" />)
     }
     if (items.length === 0) {
-      return <div className="empty">Nothing saved here yet.</div>
+      return (
+        <EmptyState icon={<BookmarkIcon />} title="Nothing saved here yet" subtitle={emptyMessage} />
+      )
     }
     return items.map((item) => {
       const locked = item.component.is_pro && !isPro
@@ -163,7 +183,9 @@ export default function Boards() {
             Delete
           </button>
         </div>
-        <div className="grid">{renderSavedGrid(boardItems)}</div>
+        <div className="grid">
+          {renderSavedGrid(boardItems, "Tap the bookmark icon on any component in Build to add it here.")}
+        </div>
         <div className={`toast ${toast ? "show" : ""}`}>{toast}</div>
       </div>
     )
@@ -191,26 +213,35 @@ export default function Boards() {
 
       {error && <div className="empty">{error}</div>}
 
-      {!error && (
-        <>
-          {boards && boards.length > 0 && (
-            <div className="boards-list">
-              {boards.map((b) => (
-                <button key={b.id} className="board-item" onClick={() => openBoardDetail(b)}>
-                  📁 {b.name}
-                </button>
-              ))}
-            </div>
-          )}
+      {!error &&
+        (boards && boards.length === 0 && allSaved && allSaved.length === 0 ? (
+          <EmptyState
+            icon={<FolderIcon />}
+            title="Nothing saved yet"
+            subtitle="Save components from Build to see them here, and group them into boards by project."
+          />
+        ) : (
+          <>
+            {boards && boards.length > 0 && (
+              <div className="boards-list">
+                {boards.map((b) => (
+                  <button key={b.id} className="board-item" onClick={() => openBoardDetail(b)}>
+                    <FolderIcon /> {b.name}
+                  </button>
+                ))}
+              </div>
+            )}
 
-          <div className="greeting" style={{ paddingTop: 4 }}>
-            <div className="greeting-title" style={{ fontSize: 15 }}>
-              All saved
+            <div className="greeting" style={{ paddingTop: 4 }}>
+              <div className="greeting-title" style={{ fontSize: 15 }}>
+                All saved
+              </div>
             </div>
-          </div>
-          <div className="grid">{renderSavedGrid(allSaved)}</div>
-        </>
-      )}
+            <div className="grid">
+              {renderSavedGrid(allSaved, "Tap the bookmark icon on any component in Build to save it.")}
+            </div>
+          </>
+        ))}
 
       <div className={`toast ${toast ? "show" : ""}`}>{toast}</div>
     </div>
