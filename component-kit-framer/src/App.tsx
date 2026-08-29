@@ -242,6 +242,28 @@ function Home({
   isPro: boolean | null
   onOpenCategory: (category: string | null) => void
 }) {
+  const [heightDebug, setHeightDebug] = useState("")
+  useEffect(() => {
+    function measure() {
+      const px = (el: Element | null) => (el ? Math.round(el.getBoundingClientRect().height) : "∅")
+      setHeightDebug(
+        [
+          `html:${px(document.documentElement)}`,
+          `body:${px(document.body)}`,
+          `#root:${px(document.getElementById("root"))}`,
+          `.shell:${px(document.querySelector(".shell"))}`,
+          `.shell-content:${px(document.querySelector(".shell-content"))}`,
+          `.app:${px(document.querySelector(".app"))}`,
+          `.tiles:${px(document.querySelector(".tiles"))}`,
+          `win:${window.innerHeight}`,
+        ].join(" ")
+      )
+    }
+    measure()
+    window.addEventListener("resize", measure)
+    return () => window.removeEventListener("resize", measure)
+  }, [])
+
   async function handleUpgrade() {
     try {
       await startCheckout()
@@ -274,6 +296,15 @@ function Home({
 
   return (
     <div className="app">
+      <div
+        style={{
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
+          background: "red", color: "white", fontSize: 9, padding: "2px 4px",
+          fontFamily: "monospace", wordBreak: "break-all",
+        }}
+      >
+        {heightDebug}
+      </div>
       <div className="greeting">
         <div className="greeting-title">Hey, {greetingName}</div>
         <div className="greeting-subtitle">What will you build today?</div>
