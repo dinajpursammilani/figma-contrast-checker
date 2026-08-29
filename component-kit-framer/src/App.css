@@ -145,7 +145,10 @@ body {
    min-height: auto (its content's intrinsic height), which makes the flex algorithm squeeze
    the tiles to fit instead of actually scrolling. Without this, every fixed-height tile
    renders shorter than its own CSS height. */
-.tiles { flex: 1; min-height: 0; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.tiles {
+  flex: 1 !important; min-height: 0 !important; overflow-y: auto !important;
+  padding: 14px; display: flex; flex-direction: column; gap: 10px;
+}
 
 .tile {
   all: unset;
@@ -295,8 +298,8 @@ body {
    that whole class of problem since there's never a sibling in the same row to pair against) ---- */
 
 .list {
-  flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px;
-  background: var(--bg);
+  flex: 1 !important; min-height: 0 !important; overflow-y: auto !important;
+  padding: 12px; display: flex; flex-direction: column; gap: 10px; background: var(--bg);
 }
 
 .card {
@@ -652,7 +655,7 @@ body {
 
 .boards-list { display: flex; flex-direction: column; gap: 6px; padding: 0 18px 12px; }
 
-.boards-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.boards-scroll { flex: 1 !important; min-height: 0 !important; overflow-y: auto !important; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 18px 18px; }
 .board-item {
   all: unset;
@@ -692,7 +695,7 @@ body {
 
 /* ---- Colors tool ---- */
 
-.colors-scroll { flex: 1; overflow-y: auto; padding-bottom: 18px; }
+.colors-scroll { flex: 1 !important; min-height: 0 !important; overflow-y: auto !important; padding-bottom: 18px; }
 
 .colors-picker-row { display: flex; gap: 8px; padding: 0 18px 4px; }
 .colors-swatch-input {

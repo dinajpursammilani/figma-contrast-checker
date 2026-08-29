@@ -255,6 +255,7 @@ function Home({
           `.shell-content:${px(document.querySelector(".shell-content"))}`,
           `.app:${px(document.querySelector(".app"))}`,
           `.tiles:${px(document.querySelector(".tiles"))}`,
+          `overflowY:${document.querySelector(".tiles") ? getComputedStyle(document.querySelector(".tiles")!).overflowY : "∅"}`,
           `win:${window.innerHeight}`,
         ].join(" ")
       )
