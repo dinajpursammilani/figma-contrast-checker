@@ -145,17 +145,17 @@ body {
    min-height: auto (its content's intrinsic height), which makes the flex algorithm squeeze
    the tiles to fit instead of actually scrolling. Without this, every fixed-height tile
    renders shorter than its own CSS height. */
-/* Split into two elements on purpose: .tiles only sizes/clips (flex + overflow:hidden),
-   .tiles-scroll is the only thing that actually scrolls (height:100% + overflow-y:auto).
-   A single element combining flex:1 sizing with overflow-y:auto did not reliably clip in
-   this host even though computed styles and getBoundingClientRect both confirmed correct
-   values (verified with a live debug banner, not assumed) — decoupling sizing from scrolling
-   into a dedicated nested element is the standard defensive fix for that class of bug. */
-.tiles { flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
-.tiles-scroll {
-  height: 100% !important; overflow-y: auto !important;
-  padding: 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box;
-}
+/* .home-scroll is the ONLY scroll container on this screen — greeting + tiles + promo all
+   live inside it as one flat flowing region, matching Kompa's actual structure (confirmed by
+   inspecting its live DOM: it puts its whole header+content in a single overflow-y:auto div,
+   never a separately-scrolling region nested inside a fixed-header flex column). Our previous
+   nested approach — a fixed .greeting sibling next to a separately flex:1+overflow-y:auto
+   .tiles — did not reliably scroll in this host despite textbook-correct CSS at every layer
+   (confirmed via a live debug banner across several rounds: correct heights, correct computed
+   overflow-y, still no clipping). .tiles itself is now just a plain content block, not a
+   scroll container. */
+.home-scroll { flex: 1 !important; min-height: 0 !important; overflow-y: auto !important; }
+.tiles { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 
 .tile {
   all: unset;

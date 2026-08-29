@@ -242,30 +242,6 @@ function Home({
   isPro: boolean | null
   onOpenCategory: (category: string | null) => void
 }) {
-  const [heightDebug, setHeightDebug] = useState("")
-  useEffect(() => {
-    function measure() {
-      const px = (el: Element | null) => (el ? Math.round(el.getBoundingClientRect().height) : "∅")
-      setHeightDebug(
-        [
-          `html:${px(document.documentElement)}`,
-          `body:${px(document.body)}`,
-          `#root:${px(document.getElementById("root"))}`,
-          `.shell:${px(document.querySelector(".shell"))}`,
-          `.shell-content:${px(document.querySelector(".shell-content"))}`,
-          `.app:${px(document.querySelector(".app"))}`,
-          `.tiles:${px(document.querySelector(".tiles"))}`,
-          `.tiles-scroll:${px(document.querySelector(".tiles-scroll"))}`,
-          `scrollHeight:${document.querySelector(".tiles-scroll")?.scrollHeight ?? "∅"}`,
-          `win:${window.innerHeight}`,
-        ].join(" ")
-      )
-    }
-    measure()
-    window.addEventListener("resize", measure)
-    return () => window.removeEventListener("resize", measure)
-  }, [])
-
   async function handleUpgrade() {
     try {
       await startCheckout()
@@ -298,74 +274,72 @@ function Home({
 
   return (
     <div className="app">
-      <div
-        style={{
-          position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
-          background: "red", color: "white", fontSize: 9, padding: "2px 4px",
-          fontFamily: "monospace", wordBreak: "break-all",
-        }}
-      >
-        {heightDebug}
-      </div>
-      <div className="greeting">
-        <div className="greeting-title">Hey, {greetingName}</div>
-        <div className="greeting-subtitle">What will you build today?</div>
-      </div>
-
-      <div className="tiles">
-       <div className="tiles-scroll">
-        <button className="tile tile-hero" onClick={() => onOpenCategory(null)}>
-          {heroSample && (
-            <div className="blueprint blueprint-hero" dangerouslySetInnerHTML={{ __html: heroSample.preview_svg }} />
-          )}
-          <div className="tile-badge">
-            <SparkleIcon />
-          </div>
-          <div className="tile-text">
-            <div className="tile-name">Browse all</div>
-            <div className="tile-count">{components ? `${components.length} components` : "…"}</div>
-          </div>
-        </button>
-
-        <div className="tiles-row">
-          {categoryCounts.map(([category, count]) => {
-            const CategoryIcon = categoryIconFor(category)
-            const sample = sampleFor(category)
-            return (
-              <button key={category} className="tile tile-small" onClick={() => onOpenCategory(category)}>
-                {sample && (
-                  <div className="blueprint blueprint-small" dangerouslySetInnerHTML={{ __html: sample.preview_svg }} />
-                )}
-                <div className="tile-badge">
-                  <CategoryIcon />
-                </div>
-                <div className="tile-text">
-                  <div className="tile-name">{category}</div>
-                  <div className="tile-count">{count} components</div>
-                </div>
-              </button>
-            )
-          })}
+      {/* Everything (greeting + tiles + promo) lives in one flat scrollable region, matching
+          Kompa's actual structure (inspected live) — only its bottom nav sits outside the
+          scroll area. Splitting a fixed header from a separately-scrolling body (our previous
+          approach: two nested flex regions, one with overflow-y:auto) did not reliably scroll
+          in this host despite textbook-correct CSS at every layer, confirmed via a live debug
+          banner over several rounds. A single flat scrollable container has no such nesting
+          and is the proven-working pattern. */}
+      <div className="home-scroll">
+        <div className="greeting">
+          <div className="greeting-title">Hey, {greetingName}</div>
+          <div className="greeting-subtitle">What will you build today?</div>
         </div>
 
-        {isPro === false && (
-          <div className="promo">
-            {(components?.find((c) => c.is_pro) ?? heroSample) && (
-              <div
-                className="blueprint blueprint-promo"
-                dangerouslySetInnerHTML={{
-                  __html: (components?.find((c) => c.is_pro) ?? heroSample)!.preview_svg,
-                }}
-              />
+        <div className="tiles">
+          <button className="tile tile-hero" onClick={() => onOpenCategory(null)}>
+            {heroSample && (
+              <div className="blueprint blueprint-hero" dangerouslySetInnerHTML={{ __html: heroSample.preview_svg }} />
             )}
-            <h3>Unlock every component</h3>
-            <p>Pro components, saved boards, and the color tool — all in one plan.</p>
-            <button className="promo-btn" onClick={handleUpgrade}>
-              Upgrade to Pro
-            </button>
+            <div className="tile-badge">
+              <SparkleIcon />
+            </div>
+            <div className="tile-text">
+              <div className="tile-name">Browse all</div>
+              <div className="tile-count">{components ? `${components.length} components` : "…"}</div>
+            </div>
+          </button>
+
+          <div className="tiles-row">
+            {categoryCounts.map(([category, count]) => {
+              const CategoryIcon = categoryIconFor(category)
+              const sample = sampleFor(category)
+              return (
+                <button key={category} className="tile tile-small" onClick={() => onOpenCategory(category)}>
+                  {sample && (
+                    <div className="blueprint blueprint-small" dangerouslySetInnerHTML={{ __html: sample.preview_svg }} />
+                  )}
+                  <div className="tile-badge">
+                    <CategoryIcon />
+                  </div>
+                  <div className="tile-text">
+                    <div className="tile-name">{category}</div>
+                    <div className="tile-count">{count} components</div>
+                  </div>
+                </button>
+              )
+            })}
           </div>
-        )}
-       </div>
+
+          {isPro === false && (
+            <div className="promo">
+              {(components?.find((c) => c.is_pro) ?? heroSample) && (
+                <div
+                  className="blueprint blueprint-promo"
+                  dangerouslySetInnerHTML={{
+                    __html: (components?.find((c) => c.is_pro) ?? heroSample)!.preview_svg,
+                  }}
+                />
+              )}
+              <h3>Unlock every component</h3>
+              <p>Pro components, saved boards, and the color tool — all in one plan.</p>
+              <button className="promo-btn" onClick={handleUpgrade}>
+                Upgrade to Pro
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
