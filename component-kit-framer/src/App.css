@@ -3,6 +3,19 @@
    flash. Every interactive element here already has its own hover/active state, so this
    default adds nothing but noise. */
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* `all: unset` on every plain button in this file (nav-btn, boards-back, boards-delete,
+   settings-toggle, etc.) doesn't reliably clear native button chrome in this WebKit build —
+   confirmed live: .bottom-nav itself computes to white, but its buttons still paint a dark
+   box, tiling edge-to-edge into what looks like one solid dark bar. Any button that actually
+   wants a background/border overrides this via its own class selector, which beats a plain
+   element selector at equal !important weight — see e.g. .settings-danger, .promo-btn. */
+button {
+  background: transparent !important;
+  border: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
 :root {
   /* No reliable signal exists for Framer's host theme inside a third-party plugin iframe —
      confirmed by testing: data-framer-theme is never set, prefers-color-scheme reflects the
