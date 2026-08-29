@@ -245,6 +245,7 @@ body {
   min-width: 14px; height: 14px; padding: 0 3px; border-radius: 999px; background: var(--accent); color: white; font-size: 9px;
 }
 
+.browse-title { font-size: 14px; font-weight: 700; color: var(--text); }
 .browse-header-spacer { flex: 1; }
 
 .search-inline-wrap {

@@ -490,6 +490,11 @@ function Browse({
             onKeyDown={(e) => e.key === "Escape" && closeSearch()}
           />
         </div>
+        {!searchOpen && (
+          <span className="browse-title">
+            {selectedCategories.size === 1 ? Array.from(selectedCategories)[0] : "All components"}
+          </span>
+        )}
         {!searchOpen && <span className="browse-header-spacer" />}
         <button
           className={`icon-btn ${searchOpen ? "active" : ""}`}
