@@ -255,7 +255,8 @@ function Home({
           `.shell-content:${px(document.querySelector(".shell-content"))}`,
           `.app:${px(document.querySelector(".app"))}`,
           `.tiles:${px(document.querySelector(".tiles"))}`,
-          `overflowY:${document.querySelector(".tiles") ? getComputedStyle(document.querySelector(".tiles")!).overflowY : "∅"}`,
+          `.tiles-scroll:${px(document.querySelector(".tiles-scroll"))}`,
+          `scrollHeight:${document.querySelector(".tiles-scroll")?.scrollHeight ?? "∅"}`,
           `win:${window.innerHeight}`,
         ].join(" ")
       )
@@ -312,6 +313,7 @@ function Home({
       </div>
 
       <div className="tiles">
+       <div className="tiles-scroll">
         <button className="tile tile-hero" onClick={() => onOpenCategory(null)}>
           {heroSample && (
             <div className="blueprint blueprint-hero" dangerouslySetInnerHTML={{ __html: heroSample.preview_svg }} />
@@ -363,6 +365,7 @@ function Home({
             </button>
           </div>
         )}
+       </div>
       </div>
     </div>
   )
