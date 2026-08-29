@@ -101,8 +101,10 @@ export default function App() {
   if (checkingSession || checkingOnboarding) {
     return (
       <div className="app">
-        <div className="empty" style={{ marginTop: 120 }}>
-          Loading…
+        <div className="boot-loading">
+          <div className="boot-loading-mark">
+            <SparkleIcon />
+          </div>
         </div>
       </div>
     )
@@ -314,6 +316,14 @@ function Home({
 
         {isPro === false && (
           <div className="promo">
+            {(components?.find((c) => c.is_pro) ?? heroSample) && (
+              <div
+                className="blueprint blueprint-promo"
+                dangerouslySetInnerHTML={{
+                  __html: (components?.find((c) => c.is_pro) ?? heroSample)!.preview_svg,
+                }}
+              />
+            )}
             <h3>Unlock every component</h3>
             <p>Pro components, saved boards, and the color tool — all in one plan.</p>
             <button className="promo-btn" onClick={handleUpgrade}>
@@ -348,6 +358,8 @@ function Browse({
     new Set(initialCategory ? [initialCategory] : allCategories)
   )
   const [selectedAccess, setSelectedAccess] = useState<Set<"free" | "pro">>(new Set(["free", "pro"]))
+  const activeFilterCount =
+    (selectedCategories.size < allCategories.length ? 1 : 0) + (selectedAccess.size < 2 ? 1 : 0)
   const [openFilter, setOpenFilter] = useState<"category" | "access" | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -455,7 +467,7 @@ function Browse({
           {searchOpen ? <CloseIcon /> : <SearchIcon />}
         </button>
         <button
-          className={`icon-btn ${filtersOpen ? "active" : ""}`}
+          className={`icon-btn ${filtersOpen || activeFilterCount > 0 ? "active" : ""}`}
           title="Filter"
           onClick={() => {
             setFiltersOpen((v) => !v)
@@ -463,6 +475,7 @@ function Browse({
           }}
         >
           <SlidersIcon />
+          {activeFilterCount > 0 && <span className="icon-btn-badge">{activeFilterCount}</span>}
         </button>
       </div>
 

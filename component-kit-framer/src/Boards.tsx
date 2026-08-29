@@ -183,8 +183,10 @@ export default function Boards() {
             Delete
           </button>
         </div>
-        <div className="grid">
-          {renderSavedGrid(boardItems, "Tap the bookmark icon on any component in Build to add it here.")}
+        <div className="boards-scroll">
+          <div className="grid">
+            {renderSavedGrid(boardItems, "Tap the bookmark icon on any component in Build to add it here.")}
+          </div>
         </div>
         <div className={`toast ${toast ? "show" : ""}`}>{toast}</div>
       </div>
@@ -211,37 +213,39 @@ export default function Boards() {
         </button>
       </div>
 
-      {error && <div className="empty">{error}</div>}
+      <div className="boards-scroll">
+        {error && <div className="empty">{error}</div>}
 
-      {!error &&
-        (boards && boards.length === 0 && allSaved && allSaved.length === 0 ? (
-          <EmptyState
-            icon={<FolderIcon />}
-            title="Nothing saved yet"
-            subtitle="Save components from Build to see them here, and group them into boards by project."
-          />
-        ) : (
-          <>
-            {boards && boards.length > 0 && (
-              <div className="boards-list">
-                {boards.map((b) => (
-                  <button key={b.id} className="board-item" onClick={() => openBoardDetail(b)}>
-                    <FolderIcon /> {b.name}
-                  </button>
-                ))}
-              </div>
-            )}
+        {!error &&
+          (boards && boards.length === 0 && allSaved && allSaved.length === 0 ? (
+            <EmptyState
+              icon={<FolderIcon />}
+              title="Nothing saved yet"
+              subtitle="Save components from Build to see them here, and group them into boards by project."
+            />
+          ) : (
+            <>
+              {boards && boards.length > 0 && (
+                <div className="boards-list">
+                  {boards.map((b) => (
+                    <button key={b.id} className="board-item" onClick={() => openBoardDetail(b)}>
+                      <FolderIcon /> {b.name}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-            <div className="greeting" style={{ paddingTop: 4 }}>
-              <div className="greeting-title" style={{ fontSize: 15 }}>
-                All saved
+              <div className="greeting" style={{ paddingTop: 4 }}>
+                <div className="greeting-title" style={{ fontSize: 15 }}>
+                  All saved
+                </div>
               </div>
-            </div>
-            <div className="grid">
-              {renderSavedGrid(allSaved, "Tap the bookmark icon on any component in Build to save it.")}
-            </div>
-          </>
-        ))}
+              <div className="grid">
+                {renderSavedGrid(allSaved, "Tap the bookmark icon on any component in Build to save it.")}
+              </div>
+            </>
+          ))}
+      </div>
 
       <div className={`toast ${toast ? "show" : ""}`}>{toast}</div>
     </div>
