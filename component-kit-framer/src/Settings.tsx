@@ -5,6 +5,7 @@ import { getProStatus, startCheckout } from "./lib/payments"
 import { getFullName } from "./lib/profile"
 import { MoonIcon, SunIcon, CrownIcon } from "./icons"
 import { SUPPORT_EMAIL } from "./lib/support"
+import { insertDetachedFromUrl, insertLinkedFromUrl } from "./nodeBuilders"
 
 type ThemePref = "light" | "dark"
 
@@ -23,6 +24,8 @@ export default function Settings({
   const [checkingOut, setCheckingOut] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [fullName, setFullName] = useState<string | null>(null)
+  const [testUrl, setTestUrl] = useState("")
+  const [testStatus, setTestStatus] = useState<string | null>(null)
 
   useEffect(() => {
     getFullName(user.id).then(setFullName)
@@ -53,6 +56,22 @@ export default function Settings({
       setCheckoutError(err instanceof Error ? err.message : "Couldn't start checkout — try again")
     } finally {
       setCheckingOut(false)
+    }
+  }
+
+  async function runTestInsert(mode: "linked" | "detached") {
+    const url = testUrl.trim()
+    if (!url) return
+    setTestStatus("Inserting…")
+    try {
+      if (mode === "linked") {
+        await insertLinkedFromUrl(url)
+      } else {
+        await insertDetachedFromUrl(url)
+      }
+      setTestStatus(`Inserted (${mode}). Check the canvas.`)
+    } catch (err) {
+      setTestStatus(err instanceof Error ? err.message : "Insert failed")
     }
   }
 
@@ -128,6 +147,30 @@ export default function Settings({
         ) : (
           <p className="settings-muted">Support contact not set up yet.</p>
         )}
+      </div>
+
+      <div className="settings-section">
+        <h3>Developer</h3>
+        <p className="settings-muted">
+          Paste a component's Module URL (Framer → Assets → right-click a component → Copy URL) to test
+          inserting it directly, bypassing the catalog.
+        </p>
+        <input
+          className="settings-input"
+          type="text"
+          placeholder="https://framer.com/m/…"
+          value={testUrl}
+          onChange={(e) => setTestUrl(e.target.value)}
+        />
+        <div className="settings-row" style={{ gap: 8 }}>
+          <button className="settings-toggle" onClick={() => runTestInsert("linked")}>
+            Insert linked
+          </button>
+          <button className="settings-toggle" onClick={() => runTestInsert("detached")}>
+            Insert detached
+          </button>
+        </div>
+        {testStatus && <p className="settings-muted">{testStatus}</p>}
       </div>
     </div>
   )

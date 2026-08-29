@@ -57,3 +57,24 @@ export async function warmInsertUrl(fileName: string, tsxSource: string): Promis
 export function getCachedInsertUrl(fileName: string): string | undefined {
   return insertUrlCache.get(fileName)
 }
+
+/** Test-only: insert any published component's Module URL (copied from Framer's Assets panel)
+ * as a linked instance, same call the current catalog uses under the hood — for comparing
+ * against detached insertion below. */
+export async function insertLinkedFromUrl(url: string) {
+  if (!framer.isAllowedTo("addComponentInstance")) {
+    throw new Error("This workspace doesn't allow inserting component instances.")
+  }
+  await framer.addComponentInstance({ url })
+}
+
+/** Test-only: insert a published Framer design component as detached, freely-editable layers —
+ * unlike insertComponent's linked instances, this only works for a component that actually lives
+ * in Framer's canvas (with a real Module URL from Assets → Copy URL), not a runtime-created
+ * CodeFile. */
+export async function insertDetachedFromUrl(url: string) {
+  if (!framer.isAllowedTo("addDetachedComponentLayers")) {
+    throw new Error("This workspace doesn't allow inserting detached component layers.")
+  }
+  await framer.addDetachedComponentLayers({ url, layout: true })
+}

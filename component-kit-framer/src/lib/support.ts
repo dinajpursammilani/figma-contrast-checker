@@ -1,3 +1,3 @@
 // Shared between Settings and Home. Dev/testing inbox for now — swap for the real support
 // address before release.
-export const SUPPORT_EMAIL: string | null = "suryadipta@pypeai.com"
+export const SUPPORT_EMAIL: string | null = "suryadipta.sarkar00@gmail.com"
