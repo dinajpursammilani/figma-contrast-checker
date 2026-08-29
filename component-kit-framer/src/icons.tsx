@@ -61,10 +61,15 @@ export function PaletteIcon(props: SVGProps<SVGSVGElement>) {
 }
 
 export function SettingsIcon(props: SVGProps<SVGSVGElement>) {
+  // Six evenly-spaced ticks via SVG's own rotate transform (exact, no hand trig to get wrong)
+  // instead of a hand-approximated gear outline — reads as a clean, symmetric gear at 16px.
   return (
     <Icon {...props}>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 13.5a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V19.5a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H4.5a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H10.5a1.7 1.7 0 0 0 1-1.5V4.5a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V10.5a1.7 1.7 0 0 0 1.5 1H19.5a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+      <circle cx="12" cy="12" r="7" />
+      <circle cx="12" cy="12" r="2.5" />
+      {[0, 60, 120, 180, 240, 300].map((deg) => (
+        <line key={deg} x1="12" y1="3.6" x2="12" y2="1.6" transform={`rotate(${deg} 12 12)`} />
+      ))}
     </Icon>
   )
 }
