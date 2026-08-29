@@ -7,7 +7,6 @@ import { getData, setDataInBackground } from "./lib/pluginStorage"
 import { fetchComponents, type ComponentRow } from "./lib/components"
 import { fetchComponentSource } from "./lib/componentSource"
 import { getProStatus, startCheckout } from "./lib/payments"
-import { SUPPORT_EMAIL } from "./lib/support"
 import { getOnboardingStatus, getFullName, friendlyNameFromEmail } from "./lib/profile"
 import Login from "./Login"
 import Onboarding from "./Onboarding"
@@ -25,8 +24,6 @@ import {
   SlidersIcon,
   LockIcon,
   SparkleIcon,
-  MessageIcon,
-  BugIcon,
   CloseIcon,
   categoryIconFor,
 } from "./icons"
@@ -341,28 +338,6 @@ function Home({
                 Upgrade to Pro
               </button>
             </div>
-          )}
-
-          <div className="home-section-label">Feedback</div>
-          {SUPPORT_EMAIL ? (
-            <>
-              <a className="home-feedback-row" href={`mailto:${SUPPORT_EMAIL}?subject=Skela feedback`}>
-                <div className="home-feedback-icon">
-                  <MessageIcon />
-                </div>
-                <span>Send feedback</span>
-              </a>
-              <a className="home-feedback-row" href={`mailto:${SUPPORT_EMAIL}?subject=Skela bug report`}>
-                <div className="home-feedback-icon">
-                  <BugIcon />
-                </div>
-                <span>Report a bug</span>
-              </a>
-            </>
-          ) : (
-            <p className="settings-muted" style={{ padding: "0 2px" }}>
-              Support contact not set up yet.
-            </p>
           )}
         </div>
       </div>
