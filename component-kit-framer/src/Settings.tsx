@@ -116,8 +116,9 @@ export default function Settings({
               <span className="settings-value">{isPro === null ? "…" : "Free"}</span>
             </div>
             {isPro === false && (
-              <button className="settings-toggle" onClick={handleUpgrade} disabled={checkingOut}>
-                {checkingOut ? "Opening checkout…" : "Upgrade to Pro →"}
+              <button className="settings-upgrade-btn" onClick={handleUpgrade} disabled={checkingOut}>
+                <CrownIcon />
+                {checkingOut ? "Opening checkout…" : "Upgrade to Pro"}
               </button>
             )}
             {checkoutError && <p className="settings-muted">{checkoutError}</p>}
@@ -132,8 +133,16 @@ export default function Settings({
         <h3>Appearance</h3>
         <div className="settings-row">
           <span>Theme</span>
-          <button className="settings-toggle" onClick={onToggleTheme}>
-            {theme === "dark" ? <MoonIcon /> : <SunIcon />} {theme === "dark" ? "Dark" : "Light"}
+          <button
+            className={`theme-switch ${theme === "dark" ? "is-dark" : ""}`}
+            onClick={onToggleTheme}
+            role="switch"
+            aria-checked={theme === "dark"}
+            aria-label="Toggle theme"
+          >
+            <span className="theme-switch-thumb">
+              {theme === "dark" ? <MoonIcon /> : <SunIcon />}
+            </span>
           </button>
         </div>
       </div>

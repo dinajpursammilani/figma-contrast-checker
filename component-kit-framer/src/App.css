@@ -20,6 +20,7 @@
      card should not look draggable). */
   --pro: #a3690a;
   --pro-soft: #fbf0da;
+  --pro-contrast: #ffffff;
   --scrim: rgba(255, 255, 255, 0.82);
 }
 :root[data-theme="dark"] {
@@ -36,6 +37,7 @@
   --accent-soft: #23244a;
   --pro: #e3ac4d;
   --pro-soft: #2e2717;
+  --pro-contrast: #1c1508;
   --scrim: rgba(5, 5, 5, 0.82);
 }
 
@@ -539,15 +541,47 @@ body {
 
 .pro-card {
   display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px;
-  background: linear-gradient(135deg, #3a2d10, #241c0a); border: 1px solid #5a4318;
+  background: var(--pro-soft); border: 1px solid var(--pro);
 }
 .pro-card-crown {
-  width: 34px; height: 34px; border-radius: 999px; background: #4a3814; color: var(--pro);
+  width: 34px; height: 34px; border-radius: 999px; background: var(--card-bg); color: var(--pro);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .pro-card-crown svg { width: 17px; height: 17px; }
 .pro-card-title { font-size: 13px; font-weight: 700; color: var(--pro); }
-.pro-card-sub { font-size: 11px; color: #c9a86a; margin-top: 1px; }
+.pro-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+.settings-upgrade-btn {
+  all: unset;
+  box-sizing: border-box !important;
+  display: flex !important; align-items: center !important; justify-content: center !important; gap: 7px !important;
+  width: 100% !important; margin-top: 10px !important;
+  background: var(--pro) !important; color: var(--pro-contrast) !important;
+  font-size: 13px !important; font-weight: 700 !important;
+  padding: 11px 16px !important; border-radius: 10px !important; cursor: pointer !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+.settings-upgrade-btn svg { width: 15px; height: 15px; }
+.settings-upgrade-btn:hover { filter: brightness(1.06) !important; }
+.settings-upgrade-btn:disabled { opacity: 0.6 !important; cursor: default !important; }
+
+.theme-switch {
+  all: unset;
+  box-sizing: border-box !important;
+  position: relative !important; width: 42px !important; height: 24px !important;
+  border-radius: 999px !important; background: var(--card-bg-2) !important;
+  border: 1px solid var(--border) !important; cursor: pointer !important; flex-shrink: 0 !important;
+}
+.theme-switch.is-dark { background: var(--accent-soft) !important; border-color: var(--accent) !important; }
+.theme-switch-thumb {
+  position: absolute; top: 1px; left: 1px; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--bg); color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.16s ease, color 0.16s ease;
+}
+.theme-switch-thumb svg { width: 12px; height: 12px; }
+.theme-switch.is-dark .theme-switch-thumb { transform: translateX(18px); color: var(--accent); }
 
 .settings-danger {
   all: unset;
