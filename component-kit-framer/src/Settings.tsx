@@ -4,12 +4,9 @@ import { signOut } from "./lib/auth"
 import { getProStatus, startCheckout } from "./lib/payments"
 import { getFullName } from "./lib/profile"
 import { MoonIcon, SunIcon, CrownIcon } from "./icons"
+import { SUPPORT_EMAIL } from "./lib/support"
 
 type ThemePref = "light" | "dark"
-
-// TODO: replace with your real support inbox before shipping — left as a placeholder rather
-// than a fabricated address, since a fake "contact us" link is worse than none.
-const SUPPORT_EMAIL: string | null = null
 
 export default function Settings({
   user,

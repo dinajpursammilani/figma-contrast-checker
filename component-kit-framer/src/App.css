@@ -48,6 +48,13 @@ body {
 
 .app { height: 100%; display: flex; flex-direction: column; background: var(--bg); }
 
+/* Scrollable, but the scrollbar track/thumb stays hidden on every scroll container in the app —
+   still fully scrollable by wheel, trackpad, or touch, just visually quieter inside a narrow
+   plugin panel. */
+.home-scroll, .list, .boards-scroll, .colors-scroll { scrollbar-width: none; }
+.home-scroll::-webkit-scrollbar, .list::-webkit-scrollbar,
+.boards-scroll::-webkit-scrollbar, .colors-scroll::-webkit-scrollbar { display: none; }
+
 @keyframes boot-pulse { 0%, 100% { opacity: 0.55; transform: scale(0.94); } 50% { opacity: 1; transform: scale(1); } }
 .boot-loading { flex: 1; display: flex; align-items: center; justify-content: center; }
 .boot-loading-mark {
@@ -214,6 +221,25 @@ body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
+.home-section-label {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-muted); margin: 6px 2px 0;
+}
+.home-feedback-row {
+  all: unset;
+  box-sizing: border-box !important;
+  display: flex !important; align-items: center !important; gap: 10px !important;
+  padding: 8px 6px !important; border-radius: 8px !important; cursor: pointer !important;
+  color: var(--text) !important; font-size: 12px !important; font-weight: 600 !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+.home-feedback-row:hover { background: var(--card-bg) !important; }
+.home-feedback-icon {
+  width: 28px; height: 28px; border-radius: 8px; background: var(--card-bg-2); color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.home-feedback-icon svg { width: 15px; height: 15px; }
+
 .nav-pro-dot {
   position: absolute !important; top: 6px !important; right: 26px !important;
   width: 7px !important; height: 7px !important; border-radius: 999px !important;
@@ -255,11 +281,8 @@ body {
 .browse-title { font-size: 14px; font-weight: 700; color: var(--text); }
 .browse-header-spacer { flex: 1; }
 
-.search-inline-wrap {
-  max-width: 0; opacity: 0; overflow: hidden; flex-shrink: 1;
-  transition: max-width 0.22s ease, opacity 0.15s ease;
-}
-.search-inline-wrap.open { max-width: 500px; opacity: 1; flex: 1; margin-right: 8px; }
+.search-inline-wrap { display: none; }
+.search-inline-wrap.open { display: block; flex: 1; margin-right: 8px; }
 .search-inline-input {
   all: unset;
   box-sizing: border-box !important;

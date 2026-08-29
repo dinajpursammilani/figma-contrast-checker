@@ -170,6 +170,23 @@ export function FolderIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function MessageIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M4 5.5h16v11H9l-4 3.5v-3.5H4Z" />
+    </Icon>
+  )
+}
+
+export function BugIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="6" y="8" width="12" height="11" rx="4" />
+      <path d="M9 8V6a3 3 0 0 1 6 0v2M4.5 12h2M17.5 12h2M6 9l-2-2M18 9l2-2M9 19v1M15 19v1" />
+    </Icon>
+  )
+}
+
 export function CrownIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Icon {...props}>
