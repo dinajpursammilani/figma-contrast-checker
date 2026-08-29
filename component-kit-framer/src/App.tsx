@@ -48,7 +48,10 @@ const THEME_KEY = "theme-preference"
 type ThemePref = "light" | "dark"
 
 function useTheme() {
-  const [theme, setTheme] = useState<ThemePref>("dark")
+  // Default to "light" — matching :root's own unqualified default — rather than "dark", so
+  // there's nothing to flash to dark while getPluginData resolves (it's been observed to hang
+  // for the full 3s timeout in some plugin contexts; see pluginStorage.ts).
+  const [theme, setTheme] = useState<ThemePref>("light")
 
   useEffect(() => {
     getData(THEME_KEY).then((saved) => {

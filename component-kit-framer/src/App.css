@@ -1,4 +1,8 @@
-* { box-sizing: border-box; }
+/* WebKit's default tap-highlight is a semi-opaque black rectangle drawn over whatever was
+   tapped — inside a plugin iframe on a light background it reads as a broken/dark button
+   flash. Every interactive element here already has its own hover/active state, so this
+   default adds nothing but noise. */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 :root {
   /* No reliable signal exists for Framer's host theme inside a third-party plugin iframe —
      confirmed by testing: data-framer-theme is never set, prefers-color-scheme reflects the
@@ -505,11 +509,11 @@ body {
 .nav-btn:active { transform: scale(0.92) !important; }
 .nav-btn.active { color: var(--accent) !important; }
 .nav-btn span {
-  position: absolute; bottom: 100%; left: 50%; margin-bottom: 6px;
-  transform: translate(-50%, 4px); white-space: nowrap;
-  font-size: 10px; font-weight: 600; color: var(--text); background: var(--card-bg);
-  padding: 4px 8px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  opacity: 0; pointer-events: none; transition: opacity 0.12s ease, transform 0.12s ease;
+  position: absolute !important; bottom: 100% !important; left: 50% !important; margin-bottom: 6px !important;
+  transform: translate(-50%, 4px) !important; white-space: nowrap !important;
+  font-size: 10px !important; font-weight: 600 !important; color: var(--text) !important; background: var(--card-bg) !important;
+  padding: 4px 8px !important; border-radius: 6px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+  opacity: 0 !important; pointer-events: none !important; transition: opacity 0.12s ease, transform 0.12s ease !important;
 }
 .nav-btn:hover span { opacity: 1; transform: translate(-50%, 0); }
 
@@ -709,9 +713,13 @@ body {
 .boards-title { flex: 1; font-size: 14px; font-weight: 700; color: var(--text); }
 .boards-delete {
   all: unset;
-  font-size: 12px !important; color: var(--danger) !important; cursor: pointer !important;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  box-sizing: border-box !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  width: 28px !important; height: 28px !important; border-radius: 8px !important;
+  color: var(--danger) !important; cursor: pointer !important; flex-shrink: 0 !important;
 }
+.boards-delete svg { width: 15px; height: 15px; }
+.boards-delete:hover { background: var(--bg-subtle) !important; }
 
 .boards-new { display: flex; gap: 8px; padding: 12px 18px; }
 .boards-new .search { flex: 1; }

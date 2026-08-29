@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { insertComponent } from "./nodeBuilders"
 import { fetchComponentSource } from "./lib/componentSource"
-import { LockIcon, FolderIcon, BookmarkIcon } from "./icons"
+import { LockIcon, FolderIcon, BookmarkIcon, TrashIcon } from "./icons"
 import { getProStatus } from "./lib/payments"
 import {
   fetchBoards,
@@ -179,8 +179,8 @@ export default function Boards() {
             ‹ Boards
           </button>
           <span className="boards-title">{openBoard.name}</span>
-          <button className="boards-delete" onClick={() => handleDeleteBoard(openBoard)}>
-            Delete
+          <button className="boards-delete" onClick={() => handleDeleteBoard(openBoard)} title="Delete board">
+            <TrashIcon />
           </button>
         </div>
         <div className="boards-scroll">
