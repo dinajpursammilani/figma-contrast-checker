@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { signIn, signUp, signInWithGoogle, completeGoogleSignIn } from "./lib/auth"
+import { signIn, signUp, signInWithGoogle, pollGoogleRelay } from "./lib/auth"
 import type { User } from "@supabase/supabase-js"
 
 function GoogleIcon() {
@@ -25,7 +25,7 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
     setError(null)
     setBusy(true)
     try {
-      const { url, error: startError } = await signInWithGoogle()
+      const { url, relayId, error: startError } = await signInWithGoogle()
       if (startError || !url) {
         setError(startError ?? "Couldn't start Google sign-in — try again.")
         setBusy(false)
@@ -34,32 +34,17 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
 
       const popup = window.open(url, "_blank")
 
-      // BroadcastChannel, not window.opener.postMessage — Google's own sign-in page sets a
-      // Cross-Origin-Opener-Policy that severs window.opener on the popup, so that channel
-      // isn't reliable here even though this tab did open it.
-      const channel = new BroadcastChannel("skela-oauth")
-      channel.onmessage = (event) => {
-        clearInterval(watchClosed)
-        channel.close()
-        completeGoogleSignIn(event.data.accessToken, event.data.refreshToken).then((result) => {
-          setBusy(false)
-          if (result.error) {
-            setError(result.error)
-            return
-          }
-          if (result.user) onLoggedIn(result.user)
-        })
+      // Polling a server-side relay, not window.opener.postMessage or BroadcastChannel — both
+      // turned out to be partitioned separately for this iframe vs. the popup tab (same as
+      // localStorage), so nothing client-side actually crosses that boundary here.
+      const result = await pollGoogleRelay(relayId)
+      setBusy(false)
+      if (popup && !popup.closed) popup.close()
+      if (result.error) {
+        setError(result.error)
+        return
       }
-
-      // The popup closing without ever posting a session back (user closed it, or cancelled
-      // at Google) shouldn't leave the button stuck on "…" forever.
-      const watchClosed = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(watchClosed)
-          channel.close()
-          setBusy(false)
-        }
-      }, 500)
+      if (result.user) onLoggedIn(result.user)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong — try again.")
       setBusy(false)

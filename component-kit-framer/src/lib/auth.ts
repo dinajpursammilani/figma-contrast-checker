@@ -69,17 +69,41 @@ export async function signIn(email: string, password: string): Promise<{ user: U
 }
 
 /** Starts Google sign-in without navigating this page away (we're inside Framer's plugin
- * iframe) — returns the OAuth URL to open in a separate tab instead. See OAuthCallback.tsx for
- * how that tab hands the resulting session back to us. */
-export async function signInWithGoogle(): Promise<{ url: string | null; error: string | null }> {
+ * iframe) — returns the OAuth URL to open in a separate tab instead, plus a relayId the caller
+ * polls the oauth-relay Edge Function with. Not window.opener/BroadcastChannel: both turned out
+ * to be partitioned separately for this iframe vs. the popup tab, so a server-side relay is the
+ * only thing that actually crosses that boundary. See OAuthCallback.tsx for the other side. */
+export async function signInWithGoogle(): Promise<{ url: string | null; relayId: string; error: string | null }> {
+  const relayId = crypto.randomUUID()
   const { data, error } = await withAuthTimeout(
     supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { skipBrowserRedirect: true, redirectTo: window.location.origin },
+      options: { skipBrowserRedirect: true, redirectTo: `${window.location.origin}/?relay=${relayId}` },
     })
   )
-  if (error) return { url: null, error: error.message }
-  return { url: data.url, error: null }
+  if (error) return { url: null, relayId, error: error.message }
+  return { url: data.url, relayId, error: null }
+}
+
+/** Polls the oauth-relay Edge Function until the callback tab has stored the session under
+ * relayId (or times out) — same shape as refetching Pro status on refocus after Polar
+ * checkout, just polled directly since there's no "switch back to Framer" moment to hook. */
+export async function pollGoogleRelay(relayId: string, timeoutMs = 90000): Promise<{ user: User | null; error: string | null }> {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const { data, error } = await supabase.functions.invoke<{
+      ready: boolean
+      accessToken?: string
+      refreshToken?: string
+      error?: string
+    }>("oauth-relay", { body: { action: "fetch", relayId } })
+
+    if (!error && data?.ready && data.accessToken && data.refreshToken) {
+      return completeGoogleSignIn(data.accessToken, data.refreshToken)
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+  }
+  return { user: null, error: "Timed out waiting for Google sign-in — try again." }
 }
 
 /** Called once the OAuth callback tab posts back a session — completes sign-in on this (the
