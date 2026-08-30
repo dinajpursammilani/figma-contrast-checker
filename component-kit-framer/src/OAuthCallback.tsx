@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { supabase } from "./lib/supabase"
 
 /** Rendered instead of the normal plugin app when this tab is the Google OAuth redirect
@@ -11,8 +11,16 @@ import { supabase } from "./lib/supabase"
  * plugin's iframe, same as localStorage — neither survives that boundary). */
 export default function OAuthCallback() {
   const [status, setStatus] = useState<"working" | "done" | "error">("working")
+  // React 18 StrictMode runs effects twice in development to catch missing cleanup — without
+  // this guard, that fires the relay POST twice: the first insert succeeds, the second fails
+  // on the duplicate relayId primary key, showing a scary "something went wrong" even though
+  // sign-in already actually completed.
+  const started = useRef(false)
 
   useEffect(() => {
+    if (started.current) return
+    started.current = true
+
     const relayId = new URLSearchParams(window.location.search).get("relay")
     const hashParams = new URLSearchParams(window.location.hash.slice(1))
     const accessToken = hashParams.get("access_token")
