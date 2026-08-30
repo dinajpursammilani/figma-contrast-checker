@@ -16,6 +16,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: false,
     autoRefreshToken: true,
     detectSessionInUrl: false,
-    flowType: "pkce",
+    // PKCE needs to read back a "code verifier" it wrote to storage when the flow started —
+    // but that write happens inside the plugin's iframe, whose storage is partitioned
+    // separately from the popup tab that completes the exchange (different top-level site:
+    // framer.com embedding vs. a direct top-level visit). That verifier is structurally
+    // unreachable from the popup, so PKCE can't complete here. Implicit flow returns tokens
+    // directly in the redirect URL instead, with no storage round-trip required.
+    flowType: "implicit",
   },
 })
