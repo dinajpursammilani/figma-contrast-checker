@@ -121,7 +121,7 @@ export default function App() {
   }
 
   if (needsOnboarding) {
-    return <Onboarding userId={user.id} onDone={() => setNeedsOnboarding(false)} />
+    return <Onboarding user={user} onDone={() => setNeedsOnboarding(false)} />
   }
 
   return <Shell user={user} onLogOut={() => setUser(null)} theme={theme} onToggleTheme={toggle} />

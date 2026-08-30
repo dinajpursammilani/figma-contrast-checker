@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { completeOnboarding } from "./lib/profile"
+import type { User } from "@supabase/supabase-js"
+import { completeOnboarding, saveFullName } from "./lib/profile"
 
 const BUILD_OPTIONS = [
   "Landing page",
@@ -38,11 +39,15 @@ interface Answers {
   role: string
 }
 
-const TOTAL_STEPS = 4
+const TOTAL_STEPS = 5
 
-export default function Onboarding({ userId, onDone }: { userId: string; onDone: () => void }) {
+export default function Onboarding({ user, onDone }: { user: User; onDone: () => void }) {
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
+  // Google sign-in already gives us a real name (in user_metadata) — pre-fill it here instead
+  // of asking again. Email/password users see this blank (that form doesn't ask for a name),
+  // filling it in for the first time.
+  const [name, setName] = useState(user.user_metadata?.full_name ?? user.user_metadata?.name ?? "")
   const [answers, setAnswers] = useState<Answers>({
     building: [],
     skill: "",
@@ -63,15 +68,22 @@ export default function Onboarding({ userId, onDone }: { userId: string; onDone:
 
   async function finish() {
     setSaving(true)
-    await completeOnboarding(userId, answers)
+    await completeOnboarding(user.id, answers)
     onDone()
   }
 
+  function goNext() {
+    if (step === 1) void saveFullName(user.id, name.trim())
+    if (step < TOTAL_STEPS) setStep(step + 1)
+    else finish()
+  }
+
   const canContinue =
-    (step === 1 && answers.building.length > 0) ||
-    (step === 2 && answers.skill !== "") ||
-    (step === 3 && answers.source !== "") ||
-    (step === 4 && answers.usage !== "" && answers.describes !== "" && answers.role !== "")
+    (step === 1 && name.trim() !== "") ||
+    (step === 2 && answers.building.length > 0) ||
+    (step === 3 && answers.skill !== "") ||
+    (step === 4 && answers.source !== "") ||
+    (step === 5 && answers.usage !== "" && answers.describes !== "" && answers.role !== "")
 
   return (
     <div className="onboarding">
@@ -84,12 +96,27 @@ export default function Onboarding({ userId, onDone }: { userId: string; onDone:
           <span />
         )}
         <div className="onboarding-progress">
-          <div className="onboarding-progress-fill" style={{ width: `${(step / TOTAL_STEPS) * 100}%` }} />
+          <div className="onboarding-progress-fill" style={{ width: `${((step - 1) / TOTAL_STEPS) * 100}%` }} />
         </div>
       </div>
 
       <div className="onboarding-body">
         {step === 1 && (
+          <>
+            <h2>What's your name?</h2>
+            <p>So we know what to call you.</p>
+            <input
+              className="onboarding-input"
+              type="text"
+              placeholder="Your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+          </>
+        )}
+
+        {step === 2 && (
           <>
             <h2>What would you like to build?</h2>
             <p>Pick as many as you like. This will help us show you the right things.</p>
@@ -107,7 +134,7 @@ export default function Onboarding({ userId, onDone }: { userId: string; onDone:
           </>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <>
             <h2>How well do you know Framer?</h2>
             <p>Don't worry, this is a safe space.</p>
@@ -125,7 +152,7 @@ export default function Onboarding({ userId, onDone }: { userId: string; onDone:
           </>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <>
             <h2>How did you hear about Skela?</h2>
             <p>No wrong answers.</p>
@@ -143,7 +170,7 @@ export default function Onboarding({ userId, onDone }: { userId: string; onDone:
           </>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <>
             <h2>What will you use Skela for?</h2>
             <p>So we know who we're building with.</p>
@@ -198,7 +225,7 @@ export default function Onboarding({ userId, onDone }: { userId: string; onDone:
       <button
         className="onboarding-continue"
         disabled={!canContinue || saving}
-        onClick={() => (step < TOTAL_STEPS ? setStep(step + 1) : finish())}
+        onClick={goNext}
       >
         {saving ? "Saving…" : "Continue"}
       </button>
