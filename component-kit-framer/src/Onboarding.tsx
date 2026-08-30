@@ -229,6 +229,13 @@ export default function Onboarding({ user, onDone }: { user: User; onDone: () =>
       >
         {saving ? "Saving…" : "Continue"}
       </button>
+      {/* Name (step 1) stays required — it's the only answer actually used elsewhere (Home's
+          greeting). The rest is profiling we don't act on anywhere yet, so skippable. */}
+      {step > 1 && !saving && (
+        <button className="onboarding-skip" onClick={goNext}>
+          Skip for now
+        </button>
+      )}
     </div>
   )
 }
