@@ -34,11 +34,13 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
 
       const popup = window.open(url, "_blank")
 
-      function onMessage(event: MessageEvent) {
-        if (event.origin !== window.location.origin) return
-        if (event.data?.type !== "skela-oauth-session") return
-        window.removeEventListener("message", onMessage)
+      // BroadcastChannel, not window.opener.postMessage — Google's own sign-in page sets a
+      // Cross-Origin-Opener-Policy that severs window.opener on the popup, so that channel
+      // isn't reliable here even though this tab did open it.
+      const channel = new BroadcastChannel("skela-oauth")
+      channel.onmessage = (event) => {
         clearInterval(watchClosed)
+        channel.close()
         completeGoogleSignIn(event.data.accessToken, event.data.refreshToken).then((result) => {
           setBusy(false)
           if (result.error) {
@@ -48,14 +50,13 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
           if (result.user) onLoggedIn(result.user)
         })
       }
-      window.addEventListener("message", onMessage)
 
       // The popup closing without ever posting a session back (user closed it, or cancelled
       // at Google) shouldn't leave the button stuck on "…" forever.
       const watchClosed = setInterval(() => {
         if (popup?.closed) {
           clearInterval(watchClosed)
-          window.removeEventListener("message", onMessage)
+          channel.close()
           setBusy(false)
         }
       }, 500)

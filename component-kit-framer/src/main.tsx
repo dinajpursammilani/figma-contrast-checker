@@ -7,9 +7,11 @@ import "@framer/plugin/framer.css"
 import "./App.css"
 
 // The Google OAuth redirect lands back on this same URL, but in a separate tab we opened
-// ourselves (window.opener is set) rather than inside Framer's plugin iframe — render the
-// callback handler instead of the app, and skip showUI since there's no Framer host here.
-const isOAuthCallback = !!window.opener && new URLSearchParams(window.location.search).has("code")
+// ourselves rather than inside Framer's plugin iframe — render the callback handler instead
+// of the app, and skip showUI since there's no Framer host here. Deliberately NOT checking
+// window.opener: Google's own sign-in page sets a Cross-Origin-Opener-Policy that severs it,
+// so the only reliable signal left is the "code" param Supabase leaves in the URL.
+const isOAuthCallback = new URLSearchParams(window.location.search).has("code")
 
 if (!isOAuthCallback) {
   void framer.showUI({
