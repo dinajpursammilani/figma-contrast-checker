@@ -37,9 +37,21 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
 
   return (
     <div className="login">
-      <div className="brand">
-        <div className="brand-mark">CK</div>
-        <div className="brand-name">Component Kit</div>
+      <div className="login-brand">
+        <svg className="login-mark" viewBox="0 0 100 100" width="44" height="44">
+          <defs>
+            <linearGradient id="loginMarkGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#6b78ff" />
+              <stop offset="100%" stopColor="#3a46e0" />
+            </linearGradient>
+          </defs>
+          <rect width="100" height="100" rx="24" fill="url(#loginMarkGrad)" />
+          <text x="50" y="67" fontFamily="Inter, sans-serif" fontSize="42" fontWeight="800" fill="white" textAnchor="middle">
+            S
+          </text>
+        </svg>
+        <div className="login-name">Skela</div>
+        <div className="login-tagline">Ready-made components for Framer</div>
       </div>
 
       <form className="login-form" onSubmit={handleSubmit}>

@@ -127,7 +127,7 @@ export default function Onboarding({ userId, onDone }: { userId: string; onDone:
 
         {step === 3 && (
           <>
-            <h2>How did you hear about Component Kit?</h2>
+            <h2>How did you hear about Skela?</h2>
             <p>No wrong answers.</p>
             <div className="onboarding-list">
               {SOURCE_OPTIONS.map((opt) => (
@@ -145,7 +145,7 @@ export default function Onboarding({ userId, onDone }: { userId: string; onDone:
 
         {step === 4 && (
           <>
-            <h2>What will you use Component Kit for?</h2>
+            <h2>What will you use Skela for?</h2>
             <p>So we know who we're building with.</p>
 
             <div className="onboarding-toggle-row">
