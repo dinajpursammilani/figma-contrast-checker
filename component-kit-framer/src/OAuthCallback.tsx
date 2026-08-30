@@ -39,7 +39,11 @@ export default function OAuthCallback() {
           return
         }
         setStatus("done")
-        setTimeout(() => window.close(), 800)
+        // Best-effort — Chrome only allows a script-closable tab to close itself in narrower
+        // cases than "navigated through a third party's domain and back," which is exactly
+        // what just happened here. When it doesn't work, the copy below tells the user to
+        // close it and switch back themselves — same as they already do for Polar checkout.
+        window.close()
       })
   }, [])
 
@@ -48,16 +52,29 @@ export default function OAuthCallback() {
       style={{
         height: "100vh",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
+        gap: 8,
         fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
-        fontSize: 14,
         color: "#17171a",
+        textAlign: "center",
+        padding: 24,
       }}
     >
-      {status === "working" && "Signing you in…"}
-      {status === "done" && "Signed in — you can close this tab."}
-      {status === "error" && "Something went wrong — close this tab and try again."}
+      {status === "working" && <div style={{ fontSize: 14, color: "#6f6f75" }}>Signing you in…</div>}
+      {status === "done" && (
+        <>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>You're signed in to Skela</div>
+          <div style={{ fontSize: 13, color: "#6f6f75" }}>Close this tab and switch back to Framer.</div>
+        </>
+      )}
+      {status === "error" && (
+        <>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>Something went wrong</div>
+          <div style={{ fontSize: 13, color: "#6f6f75" }}>Close this tab and try again from Framer.</div>
+        </>
+      )}
     </div>
   )
 }
