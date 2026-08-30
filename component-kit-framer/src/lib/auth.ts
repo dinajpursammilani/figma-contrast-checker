@@ -68,6 +68,34 @@ export async function signIn(email: string, password: string): Promise<{ user: U
   return { user: data.user, error: null }
 }
 
+/** Starts Google sign-in without navigating this page away (we're inside Framer's plugin
+ * iframe) — returns the OAuth URL to open in a separate tab instead. See OAuthCallback.tsx for
+ * how that tab hands the resulting session back to us. */
+export async function signInWithGoogle(): Promise<{ url: string | null; error: string | null }> {
+  const { data, error } = await withAuthTimeout(
+    supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { skipBrowserRedirect: true, redirectTo: window.location.origin },
+    })
+  )
+  if (error) return { url: null, error: error.message }
+  return { url: data.url, error: null }
+}
+
+/** Called once the OAuth callback tab posts back a session — completes sign-in on this (the
+ * plugin's own) Supabase client instance, same as a normal email/password login from here on. */
+export async function completeGoogleSignIn(
+  accessToken: string,
+  refreshToken: string
+): Promise<{ user: User | null; error: string | null }> {
+  const { data, error } = await withAuthTimeout(
+    supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+  )
+  if (error) return { user: null, error: error.message }
+  persistSessionInBackground(data.session)
+  return { user: data.user, error: null }
+}
+
 export async function signOut(): Promise<void> {
   await withAuthTimeout(supabase.auth.signOut())
   persistSessionInBackground(null)

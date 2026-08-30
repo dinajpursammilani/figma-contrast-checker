@@ -1,6 +1,17 @@
 import { useState } from "react"
-import { signIn, signUp } from "./lib/auth"
+import { signIn, signUp, signInWithGoogle, completeGoogleSignIn } from "./lib/auth"
 import type { User } from "@supabase/supabase-js"
+
+function GoogleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 48 48">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+    </svg>
+  )
+}
 
 export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void }) {
   const [mode, setMode] = useState<"signin" | "signup">("signin")
@@ -9,6 +20,50 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  async function handleGoogleSignIn() {
+    setError(null)
+    setBusy(true)
+    try {
+      const { url, error: startError } = await signInWithGoogle()
+      if (startError || !url) {
+        setError(startError ?? "Couldn't start Google sign-in — try again.")
+        setBusy(false)
+        return
+      }
+
+      const popup = window.open(url, "_blank")
+
+      function onMessage(event: MessageEvent) {
+        if (event.origin !== window.location.origin) return
+        if (event.data?.type !== "skela-oauth-session") return
+        window.removeEventListener("message", onMessage)
+        clearInterval(watchClosed)
+        completeGoogleSignIn(event.data.accessToken, event.data.refreshToken).then((result) => {
+          setBusy(false)
+          if (result.error) {
+            setError(result.error)
+            return
+          }
+          if (result.user) onLoggedIn(result.user)
+        })
+      }
+      window.addEventListener("message", onMessage)
+
+      // The popup closing without ever posting a session back (user closed it, or cancelled
+      // at Google) shouldn't leave the button stuck on "…" forever.
+      const watchClosed = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(watchClosed)
+          window.removeEventListener("message", onMessage)
+          setBusy(false)
+        }
+      }, 500)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong — try again.")
+      setBusy(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -52,6 +107,15 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
         </svg>
         <div className="login-name">Skela</div>
         <div className="login-tagline">Ready-made components for Framer</div>
+      </div>
+
+      <button className="login-google-btn" type="button" onClick={handleGoogleSignIn} disabled={busy}>
+        <GoogleIcon />
+        Continue with Google
+      </button>
+
+      <div className="login-divider">
+        <span>or</span>
       </div>
 
       <form className="login-form" onSubmit={handleSubmit}>
