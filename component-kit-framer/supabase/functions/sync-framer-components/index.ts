@@ -11,9 +11,12 @@
 // to signal that from Framer directly. Otherwise, tier/category live entirely in our own
 // catalog and get corrected via Edit Components, not by touching Framer.
 //
-// IMPORTANT: a re-sync must never clobber a manual correction made in Edit Components — a
-// component that already exists in the catalog only gets its name/module_url refreshed here;
-// category and is_pro are only ever *set* on first insert, never overwritten by a later sync.
+// IMPORTANT: a re-sync must never clobber a manual correction made in Edit Components, but it
+// also can't just freeze category/is_pro forever after first insert — that would block a
+// legitimate signal change too (renaming a component to add "pro/", or moving it to a
+// different page). tier_manually_set (schema-components-tier-override.sql) distinguishes the
+// two: false means "still sync-derived, keep re-deriving it every sync"; true means "a human
+// set this in Edit Components, stop touching it."
 //
 // IMPORTANT tradeoff, not an oversight: a Module URL is portable by design (Framer's own docs
 // call this out) — once a URL is in our database, anyone who obtains it can insert it in any
@@ -91,28 +94,34 @@ Deno.serve(async (req) => {
 
     const { data: existingRows, error: existingError } = await admin
       .from("components")
-      .select("id")
+      .select("id, tier_manually_set")
       .in("id", candidates.length > 0 ? candidates.map((c) => c.id) : [""])
     if (existingError) throw existingError
-    const existingIds = new Set((existingRows ?? []).map((r) => r.id))
+    const existingById = new Map((existingRows ?? []).map((r) => [r.id, r]))
 
     const newRows = candidates
-      .filter((c) => !existingIds.has(c.id))
+      .filter((c) => !existingById.has(c.id))
       .map((c) => {
         const { tier, category, name } = parseNew(c.name, c.pageName)
         return { id: c.id, name, category, is_pro: tier === "Pro", module_url: c.module_url, sort_order: 0 }
       })
-    const updateRows = candidates.filter((c) => existingIds.has(c.id))
+    const updateRows = candidates.filter((c) => existingById.has(c.id))
 
     if (newRows.length > 0) {
       const { error } = await admin.from("components").insert(newRows)
       if (error) throw error
     }
-    // Existing rows only get name/module_url refreshed — category and is_pro are left alone so
-    // a re-sync can never undo a correction made in Edit Components.
     for (const row of updateRows) {
-      const { name } = parseNew(row.name, row.pageName)
-      const { error } = await admin.from("components").update({ name, module_url: row.module_url }).eq("id", row.id)
+      const existing = existingById.get(row.id)!
+      const { name, category, tier } = parseNew(row.name, row.pageName)
+      const fields: Record<string, unknown> = { name, module_url: row.module_url }
+      // Only re-derive category/is_pro if nobody has manually overridden them in Edit
+      // Components — that override always wins over whatever Framer currently says.
+      if (!existing.tier_manually_set) {
+        fields.category = category
+        fields.is_pro = tier === "Pro"
+      }
+      const { error } = await admin.from("components").update(fields).eq("id", row.id)
       if (error) throw error
     }
 

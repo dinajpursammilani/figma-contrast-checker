@@ -44,6 +44,9 @@ Deno.serve(async (req) => {
       if (typeof body.category === "string") fields.category = body.category.trim()
       if (typeof body.is_pro === "boolean") fields.is_pro = body.is_pro
       if (Object.keys(fields).length === 0) throw new Error("Nothing to update")
+      // A human explicitly setting tier/category here means future syncs should stop
+      // re-deriving those fields for this component — this edit wins from now on.
+      if ("category" in fields || "is_pro" in fields) fields.tier_manually_set = true
 
       const { error } = await admin.from("components").update(fields).eq("id", componentId)
       if (error) throw error
