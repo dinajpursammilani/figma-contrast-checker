@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { insertComponent } from "./nodeBuilders"
+import { insertComponent, insertFromModuleUrl } from "./nodeBuilders"
 import { fetchComponentSource } from "./lib/componentSource"
-import { LockIcon, FolderIcon, BookmarkIcon, TrashIcon } from "./icons"
+import { LockIcon, FolderIcon, BookmarkIcon, TrashIcon, categoryIconFor } from "./icons"
 import { getProStatus } from "./lib/payments"
 import {
   fetchBoards,
@@ -98,9 +98,13 @@ export default function Boards() {
     }
     setBusyId(item.id)
     try {
-      const src = await fetchComponentSource(item.component.id)
-      if (!src) throw new Error("Upgrade to Pro to insert this component")
-      await insertComponent(src.file_name, src.tsx_source)
+      if (item.component.module_url) {
+        await insertFromModuleUrl(item.component.module_url)
+      } else {
+        const src = await fetchComponentSource(item.component.id)
+        if (!src) throw new Error("Upgrade to Pro to insert this component")
+        await insertComponent(src.file_name, src.tsx_source)
+      }
       showToast(`Inserted "${item.component.name}"`)
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Couldn't insert — try again")
@@ -144,7 +148,18 @@ export default function Boards() {
           className={`card ${busyId === item.id ? "busy" : ""} ${locked ? "locked" : ""}`}
           onClick={() => handleInsert(item)}
         >
-          <div className="preview" dangerouslySetInnerHTML={{ __html: item.component.preview_svg }} />
+          {item.component.preview_svg ? (
+            <div className="preview" dangerouslySetInnerHTML={{ __html: item.component.preview_svg }} />
+          ) : (
+            (() => {
+              const CategoryIcon = categoryIconFor(item.component.category)
+              return (
+                <div className="preview preview-fallback">
+                  <CategoryIcon />
+                </div>
+              )
+            })()
+          )}
           {locked && (
             <div className="preview-lock">
               <div className="preview-lock-icon"><LockIcon /></div>

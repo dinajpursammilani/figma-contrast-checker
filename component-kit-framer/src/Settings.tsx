@@ -5,7 +5,7 @@ import { getProStatus, startCheckout } from "./lib/payments"
 import { getFullName } from "./lib/profile"
 import { MoonIcon, SunIcon, CrownIcon } from "./icons"
 import { SUPPORT_EMAIL } from "./lib/support"
-import { insertDetachedFromUrl, insertLinkedFromUrl } from "./nodeBuilders"
+import { insertFromModuleUrl, insertLinkedFromUrl } from "./nodeBuilders"
 
 type ThemePref = "light" | "dark"
 
@@ -67,7 +67,7 @@ export default function Settings({
       if (mode === "linked") {
         await insertLinkedFromUrl(url)
       } else {
-        await insertDetachedFromUrl(url)
+        await insertFromModuleUrl(url)
       }
       setTestStatus(`Inserted (${mode}). Check the canvas.`)
     } catch (err) {

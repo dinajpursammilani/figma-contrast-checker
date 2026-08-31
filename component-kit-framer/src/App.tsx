@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import { useMakeDraggable } from "@framer/plugin"
-import { insertComponent, warmInsertUrl, getCachedInsertUrl } from "./nodeBuilders"
+import { insertComponent, insertFromModuleUrl, warmInsertUrl, getCachedInsertUrl } from "./nodeBuilders"
 import { restoreSession } from "./lib/auth"
 import { fetchComponents, type ComponentRow } from "./lib/components"
 import { fetchComponentSource } from "./lib/componentSource"
@@ -185,10 +185,13 @@ function Shell({
     if (!components || isPro === null) return
     components.forEach((c) => {
       if (c.is_pro && !isPro) return
+      // module_url components are always ready to drag immediately — their insert URL is
+      // already known synchronously from the row itself, nothing to warm.
+      if (c.module_url) return
       fetchComponentSource(c.id).then((src) => {
         if (!src) return
         warmInsertUrl(src.file_name, src.tsx_source).then((url) => {
-          if (url) setWarmedFiles((prev) => new Set(prev).add(c.file_name))
+          if (url) setWarmedFiles((prev) => new Set(prev).add(c.file_name!))
         })
       })
     })
@@ -280,10 +283,12 @@ function Home({
   }, [components])
 
   // A real sample preview per tile, oversized/rotated/faded as a "blueprint" decoration —
-  // ties the tile's visual interest to our actual content instead of a generic graphic.
-  const heroSample = components?.[0]
+  // ties the tile's visual interest to our actual content instead of a generic graphic. Only
+  // hand-drawn previews (preview_svg) work here — module_url components synced from Framer
+  // don't have one, so they're skipped for this purely decorative purpose.
+  const heroSample = components?.find((c) => c.preview_svg)
   function sampleFor(category: string) {
-    return components?.find((c) => c.category === category)
+    return components?.find((c) => c.category === category && c.preview_svg)
   }
 
   return (
@@ -304,7 +309,7 @@ function Home({
         <div className="tiles">
           <button className="tile tile-hero" onClick={() => onOpenCategory(null)}>
             {heroSample && (
-              <div className="blueprint blueprint-hero" dangerouslySetInnerHTML={{ __html: heroSample.preview_svg }} />
+              <div className="blueprint blueprint-hero" dangerouslySetInnerHTML={{ __html: heroSample.preview_svg! }} />
             )}
             <div className="tile-badge">
               <SparkleIcon />
@@ -322,7 +327,7 @@ function Home({
               return (
                 <button key={category} className="tile tile-small" onClick={() => onOpenCategory(category)}>
                   {sample && (
-                    <div className="blueprint blueprint-small" dangerouslySetInnerHTML={{ __html: sample.preview_svg }} />
+                    <div className="blueprint blueprint-small" dangerouslySetInnerHTML={{ __html: sample.preview_svg! }} />
                   )}
                   <div className="tile-badge">
                     <CategoryIcon />
@@ -338,11 +343,11 @@ function Home({
 
           {isPro === false && (
             <div className="promo">
-              {(components?.find((c) => c.is_pro) ?? heroSample) && (
+              {(components?.find((c) => c.is_pro && c.preview_svg) ?? heroSample) && (
                 <div
                   className="blueprint blueprint-promo"
                   dangerouslySetInnerHTML={{
-                    __html: (components?.find((c) => c.is_pro) ?? heroSample)!.preview_svg,
+                    __html: (components?.find((c) => c.is_pro && c.preview_svg) ?? heroSample)!.preview_svg!,
                   }}
                 />
               )}
@@ -461,9 +466,13 @@ function Browse({
   async function handleInsert(component: ComponentRow) {
     setBusyId(component.id)
     try {
-      const src = await fetchComponentSource(component.id)
-      if (!src) throw new Error("Upgrade to Pro to insert this component")
-      await insertComponent(src.file_name, src.tsx_source)
+      if (component.module_url) {
+        await insertFromModuleUrl(component.module_url)
+      } else {
+        const src = await fetchComponentSource(component.id)
+        if (!src) throw new Error("Upgrade to Pro to insert this component")
+        await insertComponent(src.file_name, src.tsx_source)
+      }
       showToast(`Inserted "${component.name}"`)
     } catch (err) {
       const message = err instanceof Error ? err.message : "Couldn't insert — try again"
@@ -595,7 +604,7 @@ function Browse({
               component={c}
               busy={busyId === c.id}
               locked={!!(c.is_pro && isPro === false)}
-              warmed={warmedFiles.has(c.file_name)}
+              warmed={!!c.module_url || warmedFiles.has(c.file_name ?? "")}
               onOpenDetail={() => setDetailComponent(c)}
               onSave={() => setSavingComponent(c)}
             />
@@ -657,14 +666,22 @@ function GalleryCard({
 
   useMakeDraggable(previewRef, () => ({
     type: "componentInstance",
-    url: getCachedInsertUrl(component.file_name) ?? "",
+    url: component.module_url ?? getCachedInsertUrl(component.file_name ?? "") ?? "",
     name: component.name,
   }))
+
+  const CategoryIcon = categoryIconFor(component.category)
 
   return (
     <div className={`card ${busy ? "busy" : ""} ${locked ? "locked" : ""}`} onClick={onOpenDetail}>
       <div className="preview-wrap">
-        <div ref={previewRef} className="preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
+        {component.preview_svg ? (
+          <div ref={previewRef} className="preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
+        ) : (
+          <div ref={previewRef} className="preview preview-fallback">
+            <CategoryIcon />
+          </div>
+        )}
         {locked && (
           <div className="preview-lock">
             <div className="preview-lock-icon"><LockIcon /></div>
@@ -720,7 +737,18 @@ function ComponentDetail({
       <div className="drawer detail-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="drawer-handle" />
         <div className="detail-preview-wrap">
-          <div className="detail-preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
+          {component.preview_svg ? (
+            <div className="detail-preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
+          ) : (
+            (() => {
+              const CategoryIcon = categoryIconFor(component.category)
+              return (
+                <div className="detail-preview preview-fallback">
+                  <CategoryIcon />
+                </div>
+              )
+            })()
+          )}
           {locked && (
             <div className="preview-lock detail-preview-lock">
               <div className="preview-lock-icon"><LockIcon /></div>

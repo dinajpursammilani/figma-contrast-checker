@@ -401,6 +401,12 @@ body {
 }
 .preview svg { width: 100%; height: 100%; }
 
+/* Components synced straight from a real Framer project (module_url) don't have a hand-drawn
+   preview_svg — a plain category glyph instead of nothing/broken markup. */
+.preview-fallback { color: var(--text-muted); background: var(--bg-subtle); }
+.preview-fallback svg { width: 22px !important; height: 22px !important; }
+.detail-preview.preview-fallback svg { width: 32px !important; height: 32px !important; }
+
 .preview-lock {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   background: var(--scrim);
