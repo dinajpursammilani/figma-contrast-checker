@@ -37,15 +37,6 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 // Comma-separated allowlist — anyone signed into the plugin with one of these emails can sync
 // components into the shared catalog. Set via `supabase secrets set ADMIN_EMAILS=...`.
 const ADMIN_EMAILS = (Deno.env.get("ADMIN_EMAILS") ?? "").split(",").map((e) => e.trim().toLowerCase())
-// Comma-separated allowlist of Framer project ids (framer.getProjectInfo().id) sync is allowed to
-// read from — set via `supabase secrets set SYNC_ALLOWED_PROJECT_IDS=...`. An admin account
-// signed into the wrong Framer project (a personal test file, a client demo copy) can't
-// accidentally seed the catalog with components that don't belong there. Empty means unrestricted
-// — deliberately not enforced until the real project id has been captured and set.
-const SYNC_ALLOWED_PROJECT_IDS = (Deno.env.get("SYNC_ALLOWED_PROJECT_IDS") ?? "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean)
 
 function parseName(rawName: string): { tier: "Pro" | "Free"; category: string; name: string } {
   const trimmed = rawName.trim()
@@ -95,14 +86,25 @@ Deno.serve(async (req) => {
     const { nodes, projectId, projectName } = await req.json()
     if (!Array.isArray(nodes)) throw new Error("Expected { nodes: [...] }")
 
-    if (SYNC_ALLOWED_PROJECT_IDS.length > 0 && !SYNC_ALLOWED_PROJECT_IDS.includes(projectId)) {
-      return new Response(
-        JSON.stringify({ error: `"${projectName ?? "This project"}" isn't the source project for the catalog — sync refused.` }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      )
-    }
-
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+    // Admin-managed allowlist (sync_allowed_projects, editable from Settings) — guards against an
+    // admin account accidentally running Sync from the wrong Framer project (a personal test
+    // file, a client demo copy) and polluting the shared catalog. An empty allowlist means
+    // unrestricted, so this doesn't lock anyone out before any project has been added.
+    const { count: allowedCount, error: allowedError } = await admin
+      .from("sync_allowed_projects")
+      .select("id", { count: "exact", head: true })
+    if (allowedError) throw allowedError
+    if ((allowedCount ?? 0) > 0) {
+      const { data: allowedRow } = await admin.from("sync_allowed_projects").select("id").eq("id", projectId).maybeSingle()
+      if (!allowedRow) {
+        return new Response(
+          JSON.stringify({ error: `"${projectName ?? "This project"}" isn't an allowed source project for the catalog — sync refused.` }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        )
+      }
+    }
     const skipped: string[] = []
     const candidates: { id: string; name: string; module_url: string }[] = []
 

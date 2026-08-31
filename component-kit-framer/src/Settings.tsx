@@ -3,11 +3,17 @@ import type { User } from "@supabase/supabase-js"
 import { signOut } from "./lib/auth"
 import { getProStatus, startCheckout } from "./lib/payments"
 import { getFullName } from "./lib/profile"
-import { MoonIcon, SunIcon, CrownIcon, RefreshIcon, ImageStackIcon, CodeIcon } from "./icons"
+import { MoonIcon, SunIcon, CrownIcon, RefreshIcon, ImageStackIcon, CodeIcon, LockIcon, TrashIcon } from "./icons"
 import { SUPPORT_EMAIL } from "./lib/support"
 import { insertFromModuleUrl, insertLinkedFromUrl } from "./nodeBuilders"
 import { syncComponentsFromCurrentProject } from "./lib/sync"
 import { isAdminEmail } from "./lib/admin"
+import {
+  listAllowedSyncProjects,
+  addCurrentProjectToAllowlist,
+  removeAllowedSyncProject,
+  type AllowedSyncProject,
+} from "./lib/syncProjects"
 import EditComponents from "./EditComponents"
 
 type ThemePref = "light" | "dark"
@@ -35,6 +41,10 @@ export default function Settings({
   const [syncing, setSyncing] = useState(false)
   const [showEditComponents, setShowEditComponents] = useState(false)
   const [showDevTools, setShowDevTools] = useState(false)
+  const [showSyncProjects, setShowSyncProjects] = useState(false)
+  const [allowedProjects, setAllowedProjects] = useState<AllowedSyncProject[] | null>(null)
+  const [syncProjectsBusy, setSyncProjectsBusy] = useState(false)
+  const [syncProjectsStatus, setSyncProjectsStatus] = useState<string | null>(null)
   const isAdmin = isAdminEmail(user.email)
 
   useEffect(() => {
@@ -92,14 +102,50 @@ export default function Settings({
       const result = await syncComponentsFromCurrentProject()
       setSyncStatus(
         `Synced ${result.synced} component${result.synced === 1 ? "" : "s"} from "${result.projectName}".` +
-          (result.skipped.length ? ` Skipped: ${result.skipped.join(", ")}` : "") +
-          ` Project ID: ${result.projectId}`
+          (result.skipped.length ? ` Skipped: ${result.skipped.join(", ")}` : "")
       )
       onComponentsChanged()
     } catch (err) {
       setSyncStatus(err instanceof Error ? err.message : "Sync failed")
     } finally {
       setSyncing(false)
+    }
+  }
+
+  function openSyncProjects() {
+    setShowSyncProjects((v) => !v)
+    if (!allowedProjects) {
+      listAllowedSyncProjects().then(setAllowedProjects).catch(() => setAllowedProjects([]))
+    }
+  }
+
+  async function handleAddCurrentProject() {
+    setSyncProjectsBusy(true)
+    setSyncProjectsStatus(null)
+    try {
+      const added = await addCurrentProjectToAllowlist()
+      setAllowedProjects((prev) => {
+        const withoutDup = (prev ?? []).filter((p) => p.id !== added.id)
+        return [...withoutDup, added]
+      })
+      setSyncProjectsStatus(`Added "${added.name}".`)
+    } catch (err) {
+      setSyncProjectsStatus(err instanceof Error ? err.message : "Couldn't add this project")
+    } finally {
+      setSyncProjectsBusy(false)
+    }
+  }
+
+  async function handleRemoveProject(projectId: string) {
+    setSyncProjectsBusy(true)
+    setSyncProjectsStatus(null)
+    try {
+      await removeAllowedSyncProject(projectId)
+      setAllowedProjects((prev) => prev?.filter((p) => p.id !== projectId) ?? prev)
+    } catch (err) {
+      setSyncProjectsStatus(err instanceof Error ? err.message : "Couldn't remove")
+    } finally {
+      setSyncProjectsBusy(false)
     }
   }
 
@@ -222,6 +268,56 @@ export default function Settings({
             </span>
           </button>
           {syncStatus && <p className="settings-muted">{syncStatus}</p>}
+
+          <button className="admin-row" onClick={openSyncProjects}>
+            <span className="admin-row-icon">
+              <LockIcon />
+            </span>
+            <span className="admin-row-text">
+              <span className="admin-row-title">Allowed sync projects</span>
+              <span className="admin-row-sub">
+                {allowedProjects === null
+                  ? "Restrict which Framer projects can sync"
+                  : allowedProjects.length === 0
+                    ? "Unrestricted — any project can sync"
+                    : `${allowedProjects.length} project${allowedProjects.length === 1 ? "" : "s"} allowed`}
+              </span>
+            </span>
+            <span className="admin-row-chevron">{showSyncProjects ? "⌄" : "›"}</span>
+          </button>
+
+          {showSyncProjects && (
+            <div className="admin-devtools">
+              {!allowedProjects ? (
+                <p className="settings-muted">Loading…</p>
+              ) : (
+                <>
+                  {allowedProjects.length === 0 ? (
+                    <p className="settings-muted">
+                      No projects added yet — sync is unrestricted. Add this project to lock sync down to it only.
+                    </p>
+                  ) : (
+                    allowedProjects.map((p) => (
+                      <div key={p.id} className="settings-row">
+                        <span>{p.name}</span>
+                        <button
+                          className="edit-components-delete-btn"
+                          onClick={() => handleRemoveProject(p.id)}
+                          disabled={syncProjectsBusy}
+                        >
+                          <TrashIcon /> Remove
+                        </button>
+                      </div>
+                    ))
+                  )}
+                  <button className="settings-toggle" onClick={handleAddCurrentProject} disabled={syncProjectsBusy}>
+                    {syncProjectsBusy ? "Working…" : "+ Add this project"}
+                  </button>
+                </>
+              )}
+              {syncProjectsStatus && <p className="settings-muted">{syncProjectsStatus}</p>}
+            </div>
+          )}
 
           <button className="admin-row" onClick={() => setShowDevTools((v) => !v)}>
             <span className="admin-row-icon">
