@@ -675,7 +675,11 @@ function GalleryCard({
   return (
     <div className={`card ${busy ? "busy" : ""} ${locked ? "locked" : ""}`} onClick={onOpenDetail}>
       <div className="preview-wrap">
-        {component.preview_svg ? (
+        {component.preview_image_url ? (
+          <div ref={previewRef} className="preview">
+            <img src={component.preview_image_url} alt="" />
+          </div>
+        ) : component.preview_svg ? (
           <div ref={previewRef} className="preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
         ) : (
           <div ref={previewRef} className="preview preview-fallback">
@@ -737,7 +741,11 @@ function ComponentDetail({
       <div className="drawer detail-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="drawer-handle" />
         <div className="detail-preview-wrap">
-          {component.preview_svg ? (
+          {component.preview_image_url ? (
+            <div className="detail-preview">
+              <img src={component.preview_image_url} alt="" />
+            </div>
+          ) : component.preview_svg ? (
             <div className="detail-preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
           ) : (
             (() => {

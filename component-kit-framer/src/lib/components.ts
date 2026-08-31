@@ -6,20 +6,23 @@ import { supabase } from "./supabase"
 //
 // A row is sourced one of two ways, never both: hand-written code (file_name + tsx_source,
 // fetched separately when needed) or a real Framer component synced from Dominik's project
-// (module_url, inserted directly — see nodeBuilders.ts's insertFromModuleUrl). preview_svg is
-// only ever hand-drawn for the code path; module_url components render a fallback instead.
+// (module_url, inserted directly — see nodeBuilders.ts's insertFromModuleUrl). Rendering
+// preference everywhere: preview_image_url (a real uploaded screenshot) > preview_svg
+// (hand-drawn, code path only) > a category-icon fallback.
 export interface ComponentRow {
   id: string
   name: string
   category: string
   is_pro: boolean
   preview_svg: string | null
+  preview_image_url: string | null
   file_name: string | null
   module_url: string | null
   sort_order: number
 }
 
-export const COMPONENT_COLUMNS = "id, name, category, is_pro, preview_svg, file_name, module_url, sort_order"
+export const COMPONENT_COLUMNS =
+  "id, name, category, is_pro, preview_svg, preview_image_url, file_name, module_url, sort_order"
 
 export async function fetchComponents(): Promise<ComponentRow[]> {
   const { data, error } = await supabase

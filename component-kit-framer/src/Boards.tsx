@@ -148,7 +148,11 @@ export default function Boards() {
           className={`card ${busyId === item.id ? "busy" : ""} ${locked ? "locked" : ""}`}
           onClick={() => handleInsert(item)}
         >
-          {item.component.preview_svg ? (
+          {item.component.preview_image_url ? (
+            <div className="preview">
+              <img src={item.component.preview_image_url} alt="" />
+            </div>
+          ) : item.component.preview_svg ? (
             <div className="preview" dangerouslySetInnerHTML={{ __html: item.component.preview_svg }} />
           ) : (
             (() => {

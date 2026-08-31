@@ -7,6 +7,8 @@ import { MoonIcon, SunIcon, CrownIcon } from "./icons"
 import { SUPPORT_EMAIL } from "./lib/support"
 import { insertFromModuleUrl, insertLinkedFromUrl } from "./nodeBuilders"
 import { syncComponentsFromCurrentProject } from "./lib/sync"
+import { isAdminEmail } from "./lib/admin"
+import PreviewManager from "./PreviewManager"
 
 type ThemePref = "light" | "dark"
 
@@ -29,6 +31,8 @@ export default function Settings({
   const [testStatus, setTestStatus] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
+  const [showPreviewManager, setShowPreviewManager] = useState(false)
+  const isAdmin = isAdminEmail(user.email)
 
   useEffect(() => {
     getFullName(user.id).then(setFullName)
@@ -92,6 +96,10 @@ export default function Settings({
     } finally {
       setSyncing(false)
     }
+  }
+
+  if (showPreviewManager) {
+    return <PreviewManager onBack={() => setShowPreviewManager(false)} />
   }
 
   return (
@@ -177,38 +185,48 @@ export default function Settings({
         )}
       </div>
 
-      <div className="settings-section">
-        <h3>Developer</h3>
-        <p className="settings-muted">
-          Reads every Component in whatever Framer project is currently open and syncs it into the shared
-          catalog (needs an admin account — see ADMIN_EMAILS on sync-framer-components).
-        </p>
-        <button className="settings-upgrade-btn" onClick={runSync} disabled={syncing}>
-          {syncing ? "Syncing…" : "Sync components from this project"}
-        </button>
-        {syncStatus && <p className="settings-muted">{syncStatus}</p>}
+      {isAdmin && (
+        <div className="settings-section">
+          <h3>Developer</h3>
+          <p className="settings-muted">
+            Reads every Component in whatever Framer project is currently open and syncs it into the shared
+            catalog.
+          </p>
+          <button className="settings-upgrade-btn" onClick={runSync} disabled={syncing}>
+            {syncing ? "Syncing…" : "Sync components from this project"}
+          </button>
+          {syncStatus && <p className="settings-muted">{syncStatus}</p>}
 
-        <p className="settings-muted" style={{ marginTop: 16 }}>
-          Paste a component's Module URL (Framer → Assets → right-click a component → Copy URL) to test
-          inserting it directly, bypassing the catalog.
-        </p>
-        <input
-          className="settings-input"
-          type="text"
-          placeholder="https://framer.com/m/…"
-          value={testUrl}
-          onChange={(e) => setTestUrl(e.target.value)}
-        />
-        <div className="settings-row" style={{ gap: 8 }}>
-          <button className="settings-toggle" onClick={() => runTestInsert("linked")}>
-            Insert linked
+          <button
+            className="settings-upgrade-btn"
+            style={{ marginTop: 10 }}
+            onClick={() => setShowPreviewManager(true)}
+          >
+            Manage previews
           </button>
-          <button className="settings-toggle" onClick={() => runTestInsert("detached")}>
-            Insert detached
-          </button>
+
+          <p className="settings-muted" style={{ marginTop: 16 }}>
+            Paste a component's Module URL (Framer → Assets → right-click a component → Copy URL) to test
+            inserting it directly, bypassing the catalog.
+          </p>
+          <input
+            className="settings-input"
+            type="text"
+            placeholder="https://framer.com/m/…"
+            value={testUrl}
+            onChange={(e) => setTestUrl(e.target.value)}
+          />
+          <div className="settings-row" style={{ gap: 8 }}>
+            <button className="settings-toggle" onClick={() => runTestInsert("linked")}>
+              Insert linked
+            </button>
+            <button className="settings-toggle" onClick={() => runTestInsert("detached")}>
+              Insert detached
+            </button>
+          </div>
+          {testStatus && <p className="settings-muted">{testStatus}</p>}
         </div>
-        {testStatus && <p className="settings-muted">{testStatus}</p>}
-      </div>
+      )}
     </div>
   )
 }

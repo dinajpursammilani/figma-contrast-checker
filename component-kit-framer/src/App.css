@@ -400,6 +400,7 @@ body {
   background: var(--bg); border-bottom: 1px solid var(--border);
 }
 .preview svg { width: 100%; height: 100%; }
+.preview img { width: 100%; height: 100%; object-fit: cover; }
 
 /* Components synced straight from a real Framer project (module_url) don't have a hand-drawn
    preview_svg — a plain category glyph instead of nothing/broken markup. */
@@ -731,6 +732,7 @@ body {
   display: flex; align-items: center; justify-content: center; min-height: 140px;
 }
 .detail-preview svg { max-width: 100%; height: auto; }
+.detail-preview img { max-width: 100%; max-height: 220px; border-radius: 8px; object-fit: contain; }
 .preview-lock-icon svg { width: 14px; height: 14px; }
 .detail-preview-lock .preview-lock-icon { width: 40px; height: 40px; }
 .detail-preview-lock .preview-lock-icon svg { width: 18px; height: 18px; }
@@ -878,3 +880,47 @@ body {
 }
 .colors-saved-swatch:first-child { margin-left: 0; }
 .colors-saved-name { flex: 1; font-size: 12px; font-weight: 600; color: var(--text); }
+
+/* ---- Preview manager (admin) ---- */
+
+.preview-manager { height: 100%; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
+.preview-manager-header {
+  display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.preview-manager .search { margin: 12px 18px 0; width: auto; }
+.preview-manager-filters { display: flex; gap: 6px; padding: 10px 18px 0; flex-shrink: 0; }
+
+.preview-manager-dropzone {
+  margin: 12px 18px; padding: 18px; border-radius: 12px; border: 1.5px dashed var(--border);
+  text-align: center; font-size: 12px; color: var(--text-muted); cursor: pointer; flex-shrink: 0;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.preview-manager-dropzone.drag-over { border-color: var(--accent); background: var(--accent-soft); }
+.preview-manager-dropzone.disabled { cursor: default; opacity: 0.6; }
+
+.preview-manager-list { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 18px 18px; scrollbar-width: none; }
+.preview-manager-list::-webkit-scrollbar { display: none; }
+
+.preview-manager-row {
+  all: unset;
+  box-sizing: border-box !important;
+  display: flex !important; align-items: center !important; gap: 10px !important;
+  width: 100% !important; padding: 8px !important; border-radius: 10px !important;
+  cursor: pointer !important; margin-bottom: 4px !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+.preview-manager-row:hover { background: var(--bg-subtle) !important; }
+.preview-manager-row.selected { background: var(--accent-soft) !important; }
+
+.preview-manager-thumb {
+  width: 40px; height: 40px; border-radius: 8px; background: var(--bg-subtle); color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;
+}
+.preview-manager-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.preview-manager-thumb svg { width: 18px; height: 18px; }
+
+.preview-manager-info { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left; }
+.preview-manager-name { font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.preview-manager-meta { font-size: 11px; color: var(--text-muted); }
+.preview-manager-badge { color: var(--accent); font-size: 13px; font-weight: 700; flex-shrink: 0; }
