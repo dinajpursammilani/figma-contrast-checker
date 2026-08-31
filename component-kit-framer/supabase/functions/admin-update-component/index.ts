@@ -79,6 +79,19 @@ Deno.serve(async (req) => {
       })
     }
 
+    if (action === "delete_component") {
+      // Best-effort cleanup of its preview image before removing the row — same
+      // don't-know-the-exact-extension tradeoff as delete_image above.
+      await Promise.all(
+        ["png", "jpg", "webp", "gif"].map((ext) => admin.storage.from(BUCKET).remove([`${componentId}.${ext}`]))
+      )
+      const { error } = await admin.from("components").delete().eq("id", componentId)
+      if (error) throw error
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
     throw new Error(`Unknown action: ${action}`)
   } catch (err) {
     const message = err instanceof Error ? err.message : "Update failed"

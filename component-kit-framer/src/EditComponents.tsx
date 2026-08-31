@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { fetchComponents, type ComponentRow } from "./lib/components"
 import { uploadComponentPreview } from "./lib/previewUpload"
-import { updateComponentFields, deleteComponentPreviewImage, resetComponentTierOverride } from "./lib/adminComponents"
+import { updateComponentFields, deleteComponentPreviewImage, resetComponentTierOverride, deleteComponent } from "./lib/adminComponents"
 import { categoryIconFor, TrashIcon } from "./icons"
 
 type PreviewFilter = "all" | "has" | "missing"
@@ -35,12 +35,18 @@ export default function EditComponents({ onBack }: { onBack: () => void }) {
     setComponents((prev) => prev?.map((c) => (c.id === id ? { ...c, ...patch } : c)) ?? prev)
   }
 
+  function removeLocal(id: string) {
+    setComponents((prev) => prev?.filter((c) => c.id !== id) ?? prev)
+    setOpenId(null)
+  }
+
   if (open) {
     return (
       <ComponentEditor
         component={open}
         onBack={() => setOpenId(null)}
         onChange={(patch) => patchLocal(open.id, patch)}
+        onDeleted={() => removeLocal(open.id)}
       />
     )
   }
@@ -110,10 +116,12 @@ function ComponentEditor({
   component,
   onBack,
   onChange,
+  onDeleted,
 }: {
   component: ComponentRow
   onBack: () => void
   onChange: (patch: Partial<ComponentRow>) => void
+  onDeleted: () => void
 }) {
   const [name, setName] = useState(component.name)
   const [category, setCategory] = useState(component.category)
@@ -121,6 +129,7 @@ function ComponentEditor({
   const [status, setStatus] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const dirty = name !== component.name || category !== component.category || isPro !== component.is_pro
@@ -167,6 +176,18 @@ function ComponentEditor({
     }
   }
 
+  async function handleDelete() {
+    setBusy(true)
+    setStatus(null)
+    try {
+      await deleteComponent(component.id)
+      onDeleted()
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "Couldn't delete")
+      setBusy(false)
+    }
+  }
+
   async function handleResetOverride() {
     setBusy(true)
     setStatus(null)
@@ -201,6 +222,25 @@ function ComponentEditor({
           ‹ Back
         </button>
         <span className="drawer-title">{component.name}</span>
+        {confirmingDelete ? (
+          <div className="settings-row" style={{ gap: 8 }}>
+            <button className="settings-toggle" onClick={() => setConfirmingDelete(false)} disabled={busy}>
+              Cancel
+            </button>
+            <button className="settings-toggle" onClick={handleDelete} disabled={busy} style={{ color: "var(--danger)" }}>
+              {busy ? "Deleting…" : "Confirm delete"}
+            </button>
+          </div>
+        ) : (
+          <button
+            className="settings-toggle"
+            onClick={() => setConfirmingDelete(true)}
+            disabled={busy}
+            style={{ color: "var(--danger)" }}
+          >
+            <TrashIcon /> Delete
+          </button>
+        )}
       </div>
 
       <div className="edit-components-editor">

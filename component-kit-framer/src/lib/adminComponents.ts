@@ -25,3 +25,9 @@ export async function deleteComponentPreviewImage(componentId: string): Promise<
 export async function resetComponentTierOverride(componentId: string): Promise<void> {
   await callAdminUpdate({ action: "reset_tier_override", componentId })
 }
+
+/** Removes a component from the catalog entirely (and its preview image, if any). Doesn't touch
+ * the actual Component in Framer — if it's still there, a future sync will re-add it. */
+export async function deleteComponent(componentId: string): Promise<void> {
+  await callAdminUpdate({ action: "delete_component", componentId })
+}
