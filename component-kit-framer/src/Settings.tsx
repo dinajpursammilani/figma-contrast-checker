@@ -7,7 +7,6 @@ import { MoonIcon, SunIcon, CrownIcon, RefreshIcon, ImageStackIcon, CodeIcon } f
 import { SUPPORT_EMAIL } from "./lib/support"
 import { insertFromModuleUrl, insertLinkedFromUrl } from "./nodeBuilders"
 import { syncComponentsFromCurrentProject } from "./lib/sync"
-import { listTaggableComponents, tagComponent } from "./lib/tierTag"
 import { isAdminEmail } from "./lib/admin"
 import EditComponents from "./EditComponents"
 
@@ -36,13 +35,6 @@ export default function Settings({
   const [syncing, setSyncing] = useState(false)
   const [showEditComponents, setShowEditComponents] = useState(false)
   const [showDevTools, setShowDevTools] = useState(false)
-  const [showTagTool, setShowTagTool] = useState(false)
-  const [taggableComponents, setTaggableComponents] = useState<{ id: string; name: string | null }[] | null>(null)
-  const [tagComponentId, setTagComponentId] = useState("")
-  const [tagTier, setTagTier] = useState<"pro" | "free">("free")
-  const [tagCategory, setTagCategory] = useState("")
-  const [tagStatus, setTagStatus] = useState<string | null>(null)
-  const [tagging, setTagging] = useState(false)
   const isAdmin = isAdminEmail(user.email)
 
   useEffect(() => {
@@ -107,30 +99,6 @@ export default function Settings({
       setSyncStatus(err instanceof Error ? err.message : "Sync failed")
     } finally {
       setSyncing(false)
-    }
-  }
-
-  function openTagTool() {
-    setShowTagTool((v) => !v)
-    if (!taggableComponents) {
-      listTaggableComponents().then(setTaggableComponents).catch(() => setTaggableComponents([]))
-    }
-  }
-
-  async function runTagSelected() {
-    if (!tagComponentId) {
-      setTagStatus("Pick a component first.")
-      return
-    }
-    setTagging(true)
-    setTagStatus(null)
-    try {
-      const name = await tagComponent(tagComponentId, tagTier, tagCategory)
-      setTagStatus(`Tagged "${name}" as ${tagTier === "pro" ? "Pro" : "Free"}${tagCategory.trim() ? ` / ${tagCategory.trim()}` : ""}. Sync to apply.`)
-    } catch (err) {
-      setTagStatus(err instanceof Error ? err.message : "Tagging failed")
-    } finally {
-      setTagging(false)
     }
   }
 
@@ -242,61 +210,6 @@ export default function Settings({
             </span>
             <span className="admin-row-chevron">›</span>
           </button>
-
-          <button className="admin-row" onClick={openTagTool}>
-            <span className="admin-row-icon">
-              <CrownIcon />
-            </span>
-            <span className="admin-row-text">
-              <span className="admin-row-title">Tag a component</span>
-              <span className="admin-row-sub">Set Pro/Free + category — survives renaming</span>
-            </span>
-            <span className="admin-row-chevron">{showTagTool ? "⌄" : "›"}</span>
-          </button>
-
-          {showTagTool && (
-            <div className="admin-devtools">
-              {!taggableComponents ? (
-                <p className="settings-muted">Loading components from this project…</p>
-              ) : taggableComponents.length === 0 ? (
-                <p className="settings-muted">No Components found in this project.</p>
-              ) : (
-                <>
-                  <select
-                    className="settings-input"
-                    value={tagComponentId}
-                    onChange={(e) => setTagComponentId(e.target.value)}
-                  >
-                    <option value="">Pick a component…</option>
-                    {taggableComponents.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name ?? c.id}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="onboarding-toggle-row">
-                    <button className={`onboarding-toggle ${tagTier === "free" ? "selected" : ""}`} onClick={() => setTagTier("free")}>
-                      Free
-                    </button>
-                    <button className={`onboarding-toggle ${tagTier === "pro" ? "selected" : ""}`} onClick={() => setTagTier("pro")}>
-                      Pro
-                    </button>
-                  </div>
-                  <input
-                    className="settings-input"
-                    type="text"
-                    placeholder="Category (optional)"
-                    value={tagCategory}
-                    onChange={(e) => setTagCategory(e.target.value)}
-                  />
-                  <button className="settings-toggle" onClick={runTagSelected} disabled={tagging}>
-                    {tagging ? "Tagging…" : "Tag component"}
-                  </button>
-                </>
-              )}
-              {tagStatus && <p className="settings-muted">{tagStatus}</p>}
-            </div>
-          )}
 
           <button className="admin-row" onClick={runSync} disabled={syncing}>
             <span className="admin-row-icon">
