@@ -1,4 +1,5 @@
 import { supabase } from "./supabase"
+import { describeFunctionError } from "./functionError"
 
 export async function getProStatus(): Promise<boolean> {
   const {
@@ -16,7 +17,7 @@ export async function getProStatus(): Promise<boolean> {
  * so it won't reflect until the plugin is reopened/reloaded after payment. */
 export async function startCheckout(): Promise<void> {
   const { data, error } = await supabase.functions.invoke<{ url?: string; error?: string }>("polar-checkout")
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(await describeFunctionError(error))
   if (!data?.url) throw new Error(data?.error ?? "Couldn't start checkout")
   window.open(data.url, "_blank")
 }

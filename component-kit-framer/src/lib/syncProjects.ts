@@ -1,5 +1,6 @@
 import { framer } from "@framer/plugin"
 import { supabase } from "./supabase"
+import { describeFunctionError } from "./functionError"
 
 export interface AllowedSyncProject {
   id: string
@@ -8,7 +9,7 @@ export interface AllowedSyncProject {
 
 async function call<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke<T & { error?: string }>("manage-sync-projects", { body })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(await describeFunctionError(error))
   if ((data as { error?: string } | null)?.error) throw new Error((data as { error?: string }).error)
   return data as T
 }

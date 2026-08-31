@@ -1,4 +1,5 @@
 import { supabase } from "./supabase"
+import { describeFunctionError } from "./functionError"
 
 export async function uploadComponentPreview(componentId: string, file: File): Promise<string> {
   const form = new FormData()
@@ -9,7 +10,7 @@ export async function uploadComponentPreview(componentId: string, file: File): P
     "upload-component-preview",
     { body: form }
   )
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(await describeFunctionError(error))
   if (!data?.url) throw new Error(data?.error ?? "Upload failed")
   return data.url
 }

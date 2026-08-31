@@ -1,11 +1,12 @@
 import { supabase } from "./supabase"
+import { describeFunctionError } from "./functionError"
 
 async function callAdminUpdate(body: Record<string, unknown>): Promise<void> {
   const { data, error } = await supabase.functions.invoke<{ ok?: boolean; error?: string }>(
     "admin-update-component",
     { body }
   )
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(await describeFunctionError(error))
   if (!data?.ok) throw new Error(data?.error ?? "Update failed")
 }
 

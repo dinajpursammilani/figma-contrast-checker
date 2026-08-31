@@ -1,5 +1,6 @@
 import { framer } from "@framer/plugin"
 import { supabase } from "./supabase"
+import { describeFunctionError } from "./functionError"
 
 /** Reads every real Component in the currently-open Framer project and upserts them into the
  * catalog via sync-framer-components. Meant to be run by an admin with that source project
@@ -26,7 +27,7 @@ export async function syncComponentsFromCurrentProject(): Promise<{ synced: numb
     projectName: string
     error?: string
   }>("sync-framer-components", { body: { projectId: project.id, projectName: project.name, nodes: payload } })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(await describeFunctionError(error))
   if (data?.error) throw new Error(data.error)
   return {
     synced: data?.synced ?? 0,
