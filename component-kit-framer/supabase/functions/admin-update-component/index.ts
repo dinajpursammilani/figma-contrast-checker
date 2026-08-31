@@ -55,6 +55,16 @@ Deno.serve(async (req) => {
       })
     }
 
+    if (action === "reset_tier_override") {
+      // Undoes the "manually set" lock from the update action above — the next sync will go
+      // back to re-deriving category/is_pro from Framer's own "/" naming again.
+      const { error } = await admin.from("components").update({ tier_manually_set: false }).eq("id", componentId)
+      if (error) throw error
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
     if (action === "delete_image") {
       // Best-effort cleanup — try every plausible extension, ignore misses. Not knowing the
       // exact stored extension here (only the componentId) is an acceptable tradeoff for how

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { fetchComponents, type ComponentRow } from "./lib/components"
 import { uploadComponentPreview } from "./lib/previewUpload"
-import { updateComponentFields, deleteComponentPreviewImage } from "./lib/adminComponents"
+import { updateComponentFields, deleteComponentPreviewImage, resetComponentTierOverride } from "./lib/adminComponents"
 import { categoryIconFor, TrashIcon } from "./icons"
 
 type PreviewFilter = "all" | "has" | "missing"
@@ -93,6 +93,7 @@ export default function EditComponents({ onBack }: { onBack: () => void }) {
                   <span className="edit-components-name">{c.name}</span>
                   <span className="edit-components-meta">
                     {c.category} · {c.is_pro ? "Pro" : "Free"}
+                    {c.tier_manually_set && " · locked"}
                   </span>
                 </div>
                 <span className="edit-components-chevron">›</span>
@@ -157,10 +158,24 @@ function ComponentEditor({
     setStatus(null)
     try {
       await updateComponentFields(component.id, { name: name.trim(), category: category.trim(), is_pro: isPro })
-      onChange({ name: name.trim(), category: category.trim(), is_pro: isPro })
+      onChange({ name: name.trim(), category: category.trim(), is_pro: isPro, tier_manually_set: true })
       setStatus("Saved.")
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Couldn't save")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleResetOverride() {
+    setBusy(true)
+    setStatus(null)
+    try {
+      await resetComponentTierOverride(component.id)
+      onChange({ tier_manually_set: false })
+      setStatus("Unlocked — the next Sync will set category/tier from Framer again.")
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "Couldn't unlock")
     } finally {
       setBusy(false)
     }
@@ -257,6 +272,19 @@ function ComponentEditor({
             Pro
           </button>
         </div>
+
+        {component.tier_manually_set ? (
+          <p className="settings-muted" style={{ marginTop: 8 }}>
+            Locked — Sync won't change category/tier for this component anymore.{" "}
+            <button className="settings-link" onClick={handleResetOverride} disabled={busy} style={{ display: "inline" }}>
+              Unlock
+            </button>
+          </p>
+        ) : (
+          <p className="settings-muted" style={{ marginTop: 8 }}>
+            Following Framer automatically — saving here will lock it.
+          </p>
+        )}
 
         {dirty && (
           <button className="settings-upgrade-btn" style={{ marginTop: 16 }} onClick={handleSaveFields} disabled={busy}>

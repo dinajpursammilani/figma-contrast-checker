@@ -19,10 +19,14 @@ export interface ComponentRow {
   file_name: string | null
   module_url: string | null
   sort_order: number
+  // True once an admin has explicitly set category/is_pro in Edit Components — sync then
+  // leaves those two fields alone forever for this row, instead of re-deriving them from
+  // Framer on every sync. See sync-framer-components.
+  tier_manually_set: boolean
 }
 
 export const COMPONENT_COLUMNS =
-  "id, name, category, is_pro, preview_svg, preview_image_url, file_name, module_url, sort_order"
+  "id, name, category, is_pro, preview_svg, preview_image_url, file_name, module_url, sort_order, tier_manually_set"
 
 export async function fetchComponents(): Promise<ComponentRow[]> {
   const { data, error } = await supabase

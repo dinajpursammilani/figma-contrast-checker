@@ -19,3 +19,9 @@ export async function updateComponentFields(
 export async function deleteComponentPreviewImage(componentId: string): Promise<void> {
   await callAdminUpdate({ action: "delete_image", componentId })
 }
+
+/** Undoes the "manually set" lock from updateComponentFields — the next sync will go back to
+ * re-deriving category/is_pro from Framer's own naming instead of leaving them frozen. */
+export async function resetComponentTierOverride(componentId: string): Promise<void> {
+  await callAdminUpdate({ action: "reset_tier_override", componentId })
+}
