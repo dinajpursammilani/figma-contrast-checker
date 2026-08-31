@@ -6,6 +6,7 @@ import { getFullName } from "./lib/profile"
 import { MoonIcon, SunIcon, CrownIcon } from "./icons"
 import { SUPPORT_EMAIL } from "./lib/support"
 import { insertFromModuleUrl, insertLinkedFromUrl } from "./nodeBuilders"
+import { syncComponentsFromCurrentProject } from "./lib/sync"
 
 type ThemePref = "light" | "dark"
 
@@ -26,6 +27,8 @@ export default function Settings({
   const [fullName, setFullName] = useState<string | null>(null)
   const [testUrl, setTestUrl] = useState("")
   const [testStatus, setTestStatus] = useState<string | null>(null)
+  const [syncStatus, setSyncStatus] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
 
   useEffect(() => {
     getFullName(user.id).then(setFullName)
@@ -72,6 +75,22 @@ export default function Settings({
       setTestStatus(`Inserted (${mode}). Check the canvas.`)
     } catch (err) {
       setTestStatus(err instanceof Error ? err.message : "Insert failed")
+    }
+  }
+
+  async function runSync() {
+    setSyncing(true)
+    setSyncStatus("Reading components from this project…")
+    try {
+      const result = await syncComponentsFromCurrentProject()
+      setSyncStatus(
+        `Synced ${result.synced} component${result.synced === 1 ? "" : "s"}.` +
+          (result.skipped.length ? ` Skipped: ${result.skipped.join(", ")}` : "")
+      )
+    } catch (err) {
+      setSyncStatus(err instanceof Error ? err.message : "Sync failed")
+    } finally {
+      setSyncing(false)
     }
   }
 
@@ -161,6 +180,15 @@ export default function Settings({
       <div className="settings-section">
         <h3>Developer</h3>
         <p className="settings-muted">
+          Reads every Component in whatever Framer project is currently open and syncs it into the shared
+          catalog (needs an admin account — see ADMIN_EMAILS on sync-framer-components).
+        </p>
+        <button className="settings-upgrade-btn" onClick={runSync} disabled={syncing}>
+          {syncing ? "Syncing…" : "Sync components from this project"}
+        </button>
+        {syncStatus && <p className="settings-muted">{syncStatus}</p>}
+
+        <p className="settings-muted" style={{ marginTop: 16 }}>
           Paste a component's Module URL (Framer → Assets → right-click a component → Copy URL) to test
           inserting it directly, bypassing the catalog.
         </p>
