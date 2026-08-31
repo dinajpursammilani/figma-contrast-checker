@@ -1,13 +1,23 @@
 import type { Session, User } from "@supabase/supabase-js"
 import { supabase } from "./supabase"
-import { getData, setDataInBackground } from "./pluginStorage"
 import { saveFullName } from "./profile"
 
-const SESSION_KEY = "supabase-session"
+const SESSION_KEY = "skela-supabase-session"
 const AUTH_TIMEOUT_MS = 10000
 
+// localStorage, not framer.setPluginData: that API is project-level storage shared between
+// every collaborator on the project (confirmed against Framer's own docs, which explicitly
+// warn against using it for exactly this — access tokens). It was also the reason sessions
+// weren't surviving reopening the plugin at all: project-scoped data doesn't follow "the same
+// person, any project" the way a login session needs to. localStorage is per-plugin-origin and
+// private to this browser/user, which is what an auth session actually needs.
 function persistSessionInBackground(session: Session | null) {
-  setDataInBackground(SESSION_KEY, session ? JSON.stringify(session) : null)
+  try {
+    if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+    else localStorage.removeItem(SESSION_KEY)
+  } catch (err) {
+    console.warn("Failed to persist session:", err)
+  }
 }
 
 /** Guards against a genuine network-level hang, not just an unexpected throw — a stuck login
@@ -23,7 +33,12 @@ function withAuthTimeout<T>(promise: Promise<T>): Promise<T> {
 
 /** Call once on plugin startup: restores a saved session, if any, into the Supabase client. */
 export async function restoreSession(): Promise<User | null> {
-  const raw = await getData(SESSION_KEY)
+  let raw: string | null
+  try {
+    raw = localStorage.getItem(SESSION_KEY)
+  } catch {
+    return null
+  }
   if (!raw) return null
 
   try {

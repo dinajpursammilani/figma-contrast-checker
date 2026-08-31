@@ -3,7 +3,6 @@ import type { User } from "@supabase/supabase-js"
 import { useMakeDraggable } from "@framer/plugin"
 import { insertComponent, warmInsertUrl, getCachedInsertUrl } from "./nodeBuilders"
 import { restoreSession } from "./lib/auth"
-import { getData, setDataInBackground } from "./lib/pluginStorage"
 import { fetchComponents, type ComponentRow } from "./lib/components"
 import { fetchComponentSource } from "./lib/componentSource"
 import { getProStatus, startCheckout } from "./lib/payments"
@@ -48,16 +47,21 @@ const THEME_KEY = "theme-preference"
 type ThemePref = "light" | "dark"
 
 function useTheme() {
-  // Default to "light" — matching :root's own unqualified default — rather than "dark", so
-  // there's nothing to flash to dark while getPluginData resolves (it's been observed to hang
-  // for the full 3s timeout in some plugin contexts; see pluginStorage.ts).
-  const [theme, setTheme] = useState<ThemePref>("light")
-
-  useEffect(() => {
-    getData(THEME_KEY).then((saved) => {
-      if (saved === "dark" || saved === "light") setTheme(saved)
-    })
-  }, [])
+  // Default to "light" — matching :root's own unqualified default — so there's nothing to
+  // flash to dark before the saved preference loads.
+  //
+  // localStorage, not framer.setPluginData: that API is project-level storage shared between
+  // every collaborator on the project (confirmed against Framer's own docs), so a personal
+  // theme preference would reset per-project and leak to other people editing the same file.
+  // localStorage is per-plugin-origin and private to this browser/user.
+  const [theme, setTheme] = useState<ThemePref>(() => {
+    try {
+      const saved = localStorage.getItem(THEME_KEY)
+      return saved === "dark" || saved === "light" ? saved : "light"
+    } catch {
+      return "light"
+    }
+  })
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme)
@@ -66,7 +70,11 @@ function useTheme() {
   function toggle() {
     setTheme((prev) => {
       const next = prev === "light" ? "dark" : "light"
-      setDataInBackground(THEME_KEY, next)
+      try {
+        localStorage.setItem(THEME_KEY, next)
+      } catch (err) {
+        console.warn("Failed to persist theme preference:", err)
+      }
       return next
     })
   }
