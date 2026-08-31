@@ -4,12 +4,13 @@
 // API) and POSTs them here; this function just validates the caller is an admin and writes the
 // rows.
 //
-// Tier and category both come from the component's own name, using Framer's "/" folder-naming
-// convention directly on it (same one used for text/color styles): "Pro/<Category>/<Name>" or
-// just "<Category>/<Name>" for Free (tier defaults to Free with no prefix at all). Deriving
-// category from the containing page instead was tried and live-disproven: getParent returns
-// null for every Component — master components don't live under the page tree the way regular
-// frames do, so there's no parent to read a page name from.
+// Tier and category come from plugin data tagged directly on the node (lib/tierTag.ts,
+// sent here as node.tag) — confirmed live that this persists independently of the display
+// name, unlike renaming a component after creation, which turned out not to reliably change
+// the name Framer's API reports at all. Falls back to the old "Pro/<Category>/<Name>" naming
+// convention on the name itself only when no tag is present, for components created before
+// tagging existed. Deriving category from the containing page was also tried and
+// live-disproven: getParent returns null for every Component.
 //
 // IMPORTANT: a re-sync must never clobber a manual correction made in Edit Components, but it
 // also can't just freeze category/is_pro forever after first insert — that would block a
@@ -33,7 +34,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 // components into the shared catalog. Set via `supabase secrets set ADMIN_EMAILS=...`.
 const ADMIN_EMAILS = (Deno.env.get("ADMIN_EMAILS") ?? "").split(",").map((e) => e.trim().toLowerCase())
 
-function parseNew(rawName: string): { tier: "Pro" | "Free"; category: string; name: string } {
+function parseNameFallback(rawName: string): { tier: "Pro" | "Free"; category: string; name: string } {
   const segments = rawName.split("/").map((s) => s.trim()).filter(Boolean)
   const isPro = segments[0]?.toLowerCase() === "pro"
   const afterTier = isPro ? segments.slice(1) : segments
@@ -43,6 +44,15 @@ function parseNew(rawName: string): { tier: "Pro" | "Free"; category: string; na
     return { tier, category: afterTier[0], name: afterTier.slice(1).join(" / ") }
   }
   return { tier, category: "Components", name: afterTier[0] ?? rawName }
+}
+
+type Tag = { tier: "pro" | "free" | null; category: string | null }
+
+function resolve(rawName: string, tag: Tag | undefined): { tier: "Pro" | "Free"; category: string; name: string } {
+  const fallback = parseNameFallback(rawName)
+  const tier: "Pro" | "Free" = tag?.tier === "pro" ? "Pro" : tag?.tier === "free" ? "Free" : fallback.tier
+  const category = tag?.category?.trim() ? tag.category.trim() : fallback.category
+  return { tier, category, name: fallback.name }
 }
 
 Deno.serve(async (req) => {
@@ -73,14 +83,14 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     const skipped: string[] = []
-    const candidates: { id: string; name: string; module_url: string }[] = []
+    const candidates: { id: string; name: string; module_url: string; tag?: Tag }[] = []
 
     for (const node of nodes) {
       if (!node?.insertURL || !node?.name) {
         skipped.push(node?.name ?? node?.componentIdentifier ?? "unnamed")
         continue
       }
-      candidates.push({ id: node.componentIdentifier, name: node.name, module_url: node.insertURL })
+      candidates.push({ id: node.componentIdentifier, name: node.name, module_url: node.insertURL, tag: node.tag })
     }
 
     const { data: existingRows, error: existingError } = await admin
@@ -93,7 +103,7 @@ Deno.serve(async (req) => {
     const newRows = candidates
       .filter((c) => !existingById.has(c.id))
       .map((c) => {
-        const { tier, category, name } = parseNew(c.name)
+        const { tier, category, name } = resolve(c.name, c.tag)
         return { id: c.id, name, category, is_pro: tier === "Pro", module_url: c.module_url, sort_order: 0 }
       })
     const updateRows = candidates.filter((c) => existingById.has(c.id))
@@ -104,7 +114,7 @@ Deno.serve(async (req) => {
     }
     for (const row of updateRows) {
       const existing = existingById.get(row.id)!
-      const { name, category, tier } = parseNew(row.name)
+      const { name, category, tier } = resolve(row.name, row.tag)
       const fields: Record<string, unknown> = { name, module_url: row.module_url }
       // Only re-derive category/is_pro if nobody has manually overridden them in Edit
       // Components — that override always wins over whatever Framer currently says.
