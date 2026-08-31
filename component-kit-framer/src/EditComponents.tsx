@@ -223,21 +223,17 @@ function ComponentEditor({
         </button>
         <span className="drawer-title">{component.name}</span>
         {confirmingDelete ? (
-          <div className="settings-row" style={{ gap: 8 }}>
-            <button className="settings-toggle" onClick={() => setConfirmingDelete(false)} disabled={busy}>
+          <div className="edit-components-delete-confirm">
+            <span className="edit-components-delete-confirm-label">Delete this component?</span>
+            <button className="edit-components-confirm-btn cancel" onClick={() => setConfirmingDelete(false)} disabled={busy}>
               Cancel
             </button>
-            <button className="settings-toggle" onClick={handleDelete} disabled={busy} style={{ color: "var(--danger)" }}>
+            <button className="edit-components-confirm-btn danger" onClick={handleDelete} disabled={busy}>
               {busy ? "Deleting…" : "Confirm delete"}
             </button>
           </div>
         ) : (
-          <button
-            className="settings-toggle"
-            onClick={() => setConfirmingDelete(true)}
-            disabled={busy}
-            style={{ color: "var(--danger)" }}
-          >
+          <button className="edit-components-delete-btn" onClick={() => setConfirmingDelete(true)} disabled={busy}>
             <TrashIcon /> Delete
           </button>
         )}
