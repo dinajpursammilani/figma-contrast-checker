@@ -743,11 +743,13 @@ body {
 .detail-save-btn {
   all: unset;
   box-sizing: border-box !important;
+  display: flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
   flex: 1 !important; text-align: center !important; padding: 11px !important; border-radius: 10px !important;
   background: var(--bg-subtle) !important; color: var(--text) !important;
   font-size: 13px !important; font-weight: 700 !important; cursor: pointer !important;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
+.detail-save-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
 .detail-save-btn:hover { background: var(--accent-soft) !important; }
 .detail-insert-btn {
   all: unset;

@@ -170,10 +170,14 @@ function Shell({
     }
   }, [])
 
-  useEffect(() => {
+  function refetchComponents() {
     fetchComponents()
       .then(setComponents)
       .catch((err) => setLoadError(err instanceof Error ? err.message : "Couldn't load the component library."))
+  }
+
+  useEffect(() => {
+    refetchComponents()
   }, [])
 
   // Drag-to-canvas needs the insert URL synchronously (drag data can't be a promise), so
@@ -218,7 +222,13 @@ function Shell({
         {view === "boards" && <Boards />}
         {view === "colors" && <Colors />}
         {view === "settings" && (
-          <Settings user={user} theme={theme} onToggleTheme={onToggleTheme} onLogOut={onLogOut} />
+          <Settings
+            user={user}
+            theme={theme}
+            onToggleTheme={onToggleTheme}
+            onLogOut={onLogOut}
+            onComponentsChanged={refetchComponents}
+          />
         )}
       </div>
       <div className="bottom-nav">

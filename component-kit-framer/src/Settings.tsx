@@ -17,11 +17,13 @@ export default function Settings({
   theme,
   onToggleTheme,
   onLogOut,
+  onComponentsChanged,
 }: {
   user: User
   theme: ThemePref
   onToggleTheme: () => void
   onLogOut: () => void
+  onComponentsChanged: () => void
 }) {
   const [isPro, setIsPro] = useState<boolean | null>(null)
   const [checkingOut, setCheckingOut] = useState(false)
@@ -92,6 +94,7 @@ export default function Settings({
         `Synced ${result.synced} component${result.synced === 1 ? "" : "s"}.` +
           (result.skipped.length ? ` Skipped: ${result.skipped.join(", ")}` : "")
       )
+      onComponentsChanged()
     } catch (err) {
       setSyncStatus(err instanceof Error ? err.message : "Sync failed")
     } finally {
@@ -100,7 +103,14 @@ export default function Settings({
   }
 
   if (showEditComponents) {
-    return <EditComponents onBack={() => setShowEditComponents(false)} />
+    return (
+      <EditComponents
+        onBack={() => {
+          setShowEditComponents(false)
+          onComponentsChanged()
+        }}
+      />
+    )
   }
 
   return (
