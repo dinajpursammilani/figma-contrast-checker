@@ -2,10 +2,18 @@
 // hand-writing tsx_source. The plugin itself reads the currently-open project's components
 // (framer.getNodesWithType("ComponentNode") — the regular Plugin API, not the newer/beta Server
 // API) and POSTs them here; this function just validates the caller is an admin and writes the
-// rows. Dominik never touches code: he designs a component visually, names it
-// "Free/<Category>/<Name>" or "Pro/<Category>/<Name>" (Framer's own "/" folder-naming
-// convention, same one used for text/color styles), opens that project with the Skela plugin,
-// and hits Sync.
+// rows.
+//
+// Deliberately asks nothing of whoever's designing: no naming convention required. Category
+// comes from whichever page the component actually lives on (lib/sync.ts resolves this via
+// getParent and sends it as pageName); tier always defaults to Free. The one optional escape
+// hatch: naming a component "Pro/<Name>" still marks it Pro at sync time, for anyone who wants
+// to signal that from Framer directly. Otherwise, tier/category live entirely in our own
+// catalog and get corrected via Edit Components, not by touching Framer.
+//
+// IMPORTANT: a re-sync must never clobber a manual correction made in Edit Components — a
+// component that already exists in the catalog only gets its name/module_url refreshed here;
+// category and is_pro are only ever *set* on first insert, never overwritten by a later sync.
 //
 // IMPORTANT tradeoff, not an oversight: a Module URL is portable by design (Framer's own docs
 // call this out) — once a URL is in our database, anyone who obtains it can insert it in any
@@ -22,16 +30,12 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 // components into the shared catalog. Set via `supabase secrets set ADMIN_EMAILS=...`.
 const ADMIN_EMAILS = (Deno.env.get("ADMIN_EMAILS") ?? "").split(",").map((e) => e.trim().toLowerCase())
 
-function parseName(rawName: string): { tier: "Pro" | "Free"; category: string; name: string } {
-  const segments = rawName.split("/").map((s) => s.trim()).filter(Boolean)
-  const [first, ...rest] = segments
-  const tier: "Pro" | "Free" = first?.toLowerCase() === "pro" ? "Pro" : "Free"
-  const afterTier = first?.toLowerCase() === "pro" || first?.toLowerCase() === "free" ? rest : segments
-
-  if (afterTier.length >= 2) {
-    return { tier, category: afterTier[0], name: afterTier.slice(1).join(" / ") }
-  }
-  return { tier, category: "Components", name: afterTier[0] ?? rawName }
+function parseNew(rawName: string, pageName: string | null): { tier: "Pro" | "Free"; category: string; name: string } {
+  // Only a leading "Pro/" is a recognized signal — everything else about the name is left
+  // exactly as the designer wrote it, no forced structure.
+  const isPro = /^pro\//i.test(rawName.trim())
+  const name = isPro ? rawName.trim().replace(/^pro\//i, "").trim() : rawName.trim()
+  return { tier: isPro ? "Pro" : "Free", category: pageName?.trim() || "Components", name: name || rawName }
 }
 
 Deno.serve(async (req) => {
@@ -62,30 +66,49 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     const skipped: string[] = []
-    const rows = []
+    const candidates: { id: string; name: string; module_url: string; pageName: string | null }[] = []
 
     for (const node of nodes) {
       if (!node?.insertURL || !node?.name) {
         skipped.push(node?.name ?? node?.componentIdentifier ?? "unnamed")
         continue
       }
-      const { tier, category, name } = parseName(node.name)
-      rows.push({
+      candidates.push({
         id: node.componentIdentifier,
-        name,
-        category,
-        is_pro: tier === "Pro",
+        name: node.name,
         module_url: node.insertURL,
-        sort_order: 0,
+        pageName: typeof node.pageName === "string" ? node.pageName : null,
       })
     }
 
-    if (rows.length > 0) {
-      const { error } = await admin.from("components").upsert(rows, { onConflict: "id" })
+    const { data: existingRows, error: existingError } = await admin
+      .from("components")
+      .select("id")
+      .in("id", candidates.length > 0 ? candidates.map((c) => c.id) : [""])
+    if (existingError) throw existingError
+    const existingIds = new Set((existingRows ?? []).map((r) => r.id))
+
+    const newRows = candidates
+      .filter((c) => !existingIds.has(c.id))
+      .map((c) => {
+        const { tier, category, name } = parseNew(c.name, c.pageName)
+        return { id: c.id, name, category, is_pro: tier === "Pro", module_url: c.module_url, sort_order: 0 }
+      })
+    const updateRows = candidates.filter((c) => existingIds.has(c.id))
+
+    if (newRows.length > 0) {
+      const { error } = await admin.from("components").insert(newRows)
+      if (error) throw error
+    }
+    // Existing rows only get name/module_url refreshed — category and is_pro are left alone so
+    // a re-sync can never undo a correction made in Edit Components.
+    for (const row of updateRows) {
+      const { name } = parseNew(row.name, row.pageName)
+      const { error } = await admin.from("components").update({ name, module_url: row.module_url }).eq("id", row.id)
       if (error) throw error
     }
 
-    return new Response(JSON.stringify({ synced: rows.length, skipped }), {
+    return new Response(JSON.stringify({ synced: candidates.length, skipped }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
   } catch (err) {
