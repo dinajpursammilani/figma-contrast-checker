@@ -881,28 +881,45 @@ body {
 .colors-saved-swatch:first-child { margin-left: 0; }
 .colors-saved-name { flex: 1; font-size: 12px; font-weight: 600; color: var(--text); }
 
-/* ---- Preview manager (admin) ---- */
+/* ---- Admin section (Settings) ---- */
 
-.preview-manager { height: 100%; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
-.preview-manager-header {
+.admin-row {
+  all: unset;
+  box-sizing: border-box !important;
+  display: flex !important; align-items: center !important; gap: 12px !important;
+  width: 100% !important; padding: 12px !important; border-radius: 12px !important;
+  cursor: pointer !important; margin-bottom: 8px !important;
+  background: var(--card-bg) !important; border: 1px solid var(--border) !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  transition: border-color 0.12s ease !important;
+}
+.admin-row:hover { border-color: var(--accent) !important; }
+.admin-row:disabled { opacity: 0.55 !important; cursor: default !important; }
+.admin-row-icon {
+  width: 34px; height: 34px; border-radius: 9px; background: var(--accent-soft); color: var(--accent);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.admin-row-icon svg { width: 16px; height: 16px; }
+.admin-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; text-align: left; }
+.admin-row-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.admin-row-sub { font-size: 11px; color: var(--text-muted); }
+.admin-row-chevron { font-size: 17px; color: var(--text-muted); flex-shrink: 0; }
+.admin-devtools { padding: 2px 2px 12px; }
+
+/* ---- Edit Components (admin) ---- */
+
+.edit-components { height: 100%; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
+.edit-components-header {
   display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-.preview-manager .search { margin: 12px 18px 0; width: auto; }
-.preview-manager-filters { display: flex; gap: 6px; padding: 10px 18px 0; flex-shrink: 0; }
+.edit-components .search { margin: 12px 18px 0; width: auto; }
+.edit-components-filters { display: flex; gap: 6px; padding: 10px 18px; flex-shrink: 0; }
 
-.preview-manager-dropzone {
-  margin: 12px 18px; padding: 18px; border-radius: 12px; border: 1.5px dashed var(--border);
-  text-align: center; font-size: 12px; color: var(--text-muted); cursor: pointer; flex-shrink: 0;
-  transition: border-color 0.12s ease, background 0.12s ease;
-}
-.preview-manager-dropzone.drag-over { border-color: var(--accent); background: var(--accent-soft); }
-.preview-manager-dropzone.disabled { cursor: default; opacity: 0.6; }
+.edit-components-list { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 18px 18px; scrollbar-width: none; }
+.edit-components-list::-webkit-scrollbar { display: none; }
 
-.preview-manager-list { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 18px 18px; scrollbar-width: none; }
-.preview-manager-list::-webkit-scrollbar { display: none; }
-
-.preview-manager-row {
+.edit-components-row {
   all: unset;
   box-sizing: border-box !important;
   display: flex !important; align-items: center !important; gap: 10px !important;
@@ -910,17 +927,32 @@ body {
   cursor: pointer !important; margin-bottom: 4px !important;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
-.preview-manager-row:hover { background: var(--bg-subtle) !important; }
-.preview-manager-row.selected { background: var(--accent-soft) !important; }
+.edit-components-row:hover { background: var(--bg-subtle) !important; }
 
-.preview-manager-thumb {
-  width: 40px; height: 40px; border-radius: 8px; background: var(--bg-subtle); color: var(--text-muted);
+.edit-components-thumb {
+  width: 44px; height: 44px; border-radius: 8px; background: var(--bg-subtle); color: var(--text-muted);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;
 }
-.preview-manager-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.preview-manager-thumb svg { width: 18px; height: 18px; }
+.edit-components-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.edit-components-thumb svg { width: 100%; height: 100%; padding: 10px; }
 
-.preview-manager-info { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left; }
-.preview-manager-name { font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.preview-manager-meta { font-size: 11px; color: var(--text-muted); }
-.preview-manager-badge { color: var(--accent); font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.edit-components-info { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left; }
+.edit-components-name { font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.edit-components-meta { font-size: 11px; color: var(--text-muted); }
+.edit-components-chevron { font-size: 16px; color: var(--text-muted); flex-shrink: 0; }
+
+.edit-components-editor { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 18px 24px; scrollbar-width: none; }
+.edit-components-editor::-webkit-scrollbar { display: none; }
+
+.edit-components-preview-large {
+  position: relative; width: 100%; aspect-ratio: 16 / 10; border-radius: 14px; background: var(--bg-subtle);
+  border: 1.5px dashed var(--border); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; overflow: hidden; color: var(--text-muted); transition: border-color 0.12s ease, background 0.12s ease;
+}
+.edit-components-preview-large.drag-over { border-color: var(--accent); background: var(--accent-soft); }
+.edit-components-preview-large img { width: 100%; height: 100%; object-fit: cover; }
+.edit-components-preview-large svg { width: 100%; height: 100%; padding: 40px; }
+.edit-components-preview-hint {
+  position: absolute; inset: auto 0 0 0; padding: 10px; text-align: center; font-size: 11.5px; font-weight: 600;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.6)); color: #fff;
+}

@@ -201,6 +201,33 @@ export function TrashIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function RefreshIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M4 12a8 8 0 0 1 14.2-5M20 12a8 8 0 0 1-14.2 5" />
+      <path d="M18 4v4h-4M6 20v-4h4" />
+    </Icon>
+  )
+}
+
+export function ImageStackIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="4" y="6" width="14" height="12" rx="2" />
+      <path d="m4 15 3.5-3.5a1.5 1.5 0 0 1 2 0L14 15" />
+      <circle cx="9" cy="10" r="1.2" fill="currentColor" stroke="none" />
+    </Icon>
+  )
+}
+
+export function CodeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="m9 8-4 4 4 4M15 8l4 4-4 4" />
+    </Icon>
+  )
+}
+
 export function CrownIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Icon {...props}>

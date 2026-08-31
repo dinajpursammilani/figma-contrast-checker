@@ -3,12 +3,12 @@ import type { User } from "@supabase/supabase-js"
 import { signOut } from "./lib/auth"
 import { getProStatus, startCheckout } from "./lib/payments"
 import { getFullName } from "./lib/profile"
-import { MoonIcon, SunIcon, CrownIcon } from "./icons"
+import { MoonIcon, SunIcon, CrownIcon, RefreshIcon, ImageStackIcon, CodeIcon } from "./icons"
 import { SUPPORT_EMAIL } from "./lib/support"
 import { insertFromModuleUrl, insertLinkedFromUrl } from "./nodeBuilders"
 import { syncComponentsFromCurrentProject } from "./lib/sync"
 import { isAdminEmail } from "./lib/admin"
-import PreviewManager from "./PreviewManager"
+import EditComponents from "./EditComponents"
 
 type ThemePref = "light" | "dark"
 
@@ -31,7 +31,8 @@ export default function Settings({
   const [testStatus, setTestStatus] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
-  const [showPreviewManager, setShowPreviewManager] = useState(false)
+  const [showEditComponents, setShowEditComponents] = useState(false)
+  const [showDevTools, setShowDevTools] = useState(false)
   const isAdmin = isAdminEmail(user.email)
 
   useEffect(() => {
@@ -98,8 +99,8 @@ export default function Settings({
     }
   }
 
-  if (showPreviewManager) {
-    return <PreviewManager onBack={() => setShowPreviewManager(false)} />
+  if (showEditComponents) {
+    return <EditComponents onBack={() => setShowEditComponents(false)} />
   }
 
   return (
@@ -187,44 +188,61 @@ export default function Settings({
 
       {isAdmin && (
         <div className="settings-section">
-          <h3>Developer</h3>
-          <p className="settings-muted">
-            Reads every Component in whatever Framer project is currently open and syncs it into the shared
-            catalog.
-          </p>
-          <button className="settings-upgrade-btn" onClick={runSync} disabled={syncing}>
-            {syncing ? "Syncing…" : "Sync components from this project"}
+          <h3>Admin</h3>
+
+          <button className="admin-row" onClick={() => setShowEditComponents(true)}>
+            <span className="admin-row-icon">
+              <ImageStackIcon />
+            </span>
+            <span className="admin-row-text">
+              <span className="admin-row-title">Edit Components</span>
+              <span className="admin-row-sub">Names, categories, tiers, preview images</span>
+            </span>
+            <span className="admin-row-chevron">›</span>
+          </button>
+
+          <button className="admin-row" onClick={runSync} disabled={syncing}>
+            <span className="admin-row-icon">
+              <RefreshIcon />
+            </span>
+            <span className="admin-row-text">
+              <span className="admin-row-title">{syncing ? "Syncing…" : "Sync from this project"}</span>
+              <span className="admin-row-sub">Reads every Component in the open Framer project</span>
+            </span>
           </button>
           {syncStatus && <p className="settings-muted">{syncStatus}</p>}
 
-          <button
-            className="settings-upgrade-btn"
-            style={{ marginTop: 10 }}
-            onClick={() => setShowPreviewManager(true)}
-          >
-            Manage previews
+          <button className="admin-row" onClick={() => setShowDevTools((v) => !v)}>
+            <span className="admin-row-icon">
+              <CodeIcon />
+            </span>
+            <span className="admin-row-text">
+              <span className="admin-row-title">Developer tools</span>
+              <span className="admin-row-sub">Test-insert a Module URL directly</span>
+            </span>
+            <span className="admin-row-chevron">{showDevTools ? "⌄" : "›"}</span>
           </button>
 
-          <p className="settings-muted" style={{ marginTop: 16 }}>
-            Paste a component's Module URL (Framer → Assets → right-click a component → Copy URL) to test
-            inserting it directly, bypassing the catalog.
-          </p>
-          <input
-            className="settings-input"
-            type="text"
-            placeholder="https://framer.com/m/…"
-            value={testUrl}
-            onChange={(e) => setTestUrl(e.target.value)}
-          />
-          <div className="settings-row" style={{ gap: 8 }}>
-            <button className="settings-toggle" onClick={() => runTestInsert("linked")}>
-              Insert linked
-            </button>
-            <button className="settings-toggle" onClick={() => runTestInsert("detached")}>
-              Insert detached
-            </button>
-          </div>
-          {testStatus && <p className="settings-muted">{testStatus}</p>}
+          {showDevTools && (
+            <div className="admin-devtools">
+              <input
+                className="settings-input"
+                type="text"
+                placeholder="https://framer.com/m/…"
+                value={testUrl}
+                onChange={(e) => setTestUrl(e.target.value)}
+              />
+              <div className="settings-row" style={{ gap: 8 }}>
+                <button className="settings-toggle" onClick={() => runTestInsert("linked")}>
+                  Insert linked
+                </button>
+                <button className="settings-toggle" onClick={() => runTestInsert("detached")}>
+                  Insert detached
+                </button>
+              </div>
+              {testStatus && <p className="settings-muted">{testStatus}</p>}
+            </div>
+          )}
         </div>
       )}
     </div>
