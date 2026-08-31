@@ -928,8 +928,7 @@ body {
 .edit-components-delete-btn:disabled { opacity: 0.5; cursor: default; }
 .edit-components-delete-btn svg { width: 14px; height: 14px; }
 
-.edit-components-delete-confirm { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.edit-components-delete-confirm-label { font-size: 12px; color: var(--text-muted); margin-right: 2px; }
+.edit-components-delete-confirm { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .edit-components-confirm-btn {
   all: unset; box-sizing: border-box;
   padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;

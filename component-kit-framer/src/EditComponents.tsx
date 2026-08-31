@@ -224,12 +224,11 @@ function ComponentEditor({
         <span className="drawer-title">{component.name}</span>
         {confirmingDelete ? (
           <div className="edit-components-delete-confirm">
-            <span className="edit-components-delete-confirm-label">Delete this component?</span>
             <button className="edit-components-confirm-btn cancel" onClick={() => setConfirmingDelete(false)} disabled={busy}>
               Cancel
             </button>
             <button className="edit-components-confirm-btn danger" onClick={handleDelete} disabled={busy}>
-              {busy ? "Deleting…" : "Confirm delete"}
+              {busy ? "Deleting…" : "Confirm"}
             </button>
           </div>
         ) : (
