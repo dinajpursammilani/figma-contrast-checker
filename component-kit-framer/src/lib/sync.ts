@@ -10,7 +10,8 @@ import { supabase } from "./supabase"
  * page instead (via getParent) was tried and live-confirmed not to work: getParent returns
  * null for every Component, since master components apparently don't live under the page tree
  * the way regular frames do. */
-export async function syncComponentsFromCurrentProject(): Promise<{ synced: number; skipped: string[] }> {
+export async function syncComponentsFromCurrentProject(): Promise<{ synced: number; skipped: string[]; projectId: string; projectName: string }> {
+  const project = await framer.getProjectInfo()
   const nodes = await framer.getNodesWithType("ComponentNode")
   const payload = nodes.map((n) => ({
     componentIdentifier: n.componentIdentifier,
@@ -18,11 +19,19 @@ export async function syncComponentsFromCurrentProject(): Promise<{ synced: numb
     insertURL: n.insertURL,
   }))
 
-  const { data, error } = await supabase.functions.invoke<{ synced: number; skipped: string[]; error?: string }>(
-    "sync-framer-components",
-    { body: { nodes: payload } }
-  )
+  const { data, error } = await supabase.functions.invoke<{
+    synced: number
+    skipped: string[]
+    projectId: string
+    projectName: string
+    error?: string
+  }>("sync-framer-components", { body: { projectId: project.id, projectName: project.name, nodes: payload } })
   if (error) throw new Error(error.message)
   if (data?.error) throw new Error(data.error)
-  return { synced: data?.synced ?? 0, skipped: data?.skipped ?? [] }
+  return {
+    synced: data?.synced ?? 0,
+    skipped: data?.skipped ?? [],
+    projectId: data?.projectId ?? project.id,
+    projectName: data?.projectName ?? project.name,
+  }
 }

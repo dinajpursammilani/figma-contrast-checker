@@ -91,8 +91,9 @@ export default function Settings({
     try {
       const result = await syncComponentsFromCurrentProject()
       setSyncStatus(
-        `Synced ${result.synced} component${result.synced === 1 ? "" : "s"}.` +
-          (result.skipped.length ? ` Skipped: ${result.skipped.join(", ")}` : "")
+        `Synced ${result.synced} component${result.synced === 1 ? "" : "s"} from "${result.projectName}".` +
+          (result.skipped.length ? ` Skipped: ${result.skipped.join(", ")}` : "") +
+          ` Project ID: ${result.projectId}`
       )
       onComponentsChanged()
     } catch (err) {

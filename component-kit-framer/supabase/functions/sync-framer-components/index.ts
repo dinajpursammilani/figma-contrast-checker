@@ -37,6 +37,15 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 // Comma-separated allowlist — anyone signed into the plugin with one of these emails can sync
 // components into the shared catalog. Set via `supabase secrets set ADMIN_EMAILS=...`.
 const ADMIN_EMAILS = (Deno.env.get("ADMIN_EMAILS") ?? "").split(",").map((e) => e.trim().toLowerCase())
+// Comma-separated allowlist of Framer project ids (framer.getProjectInfo().id) sync is allowed to
+// read from — set via `supabase secrets set SYNC_ALLOWED_PROJECT_IDS=...`. An admin account
+// signed into the wrong Framer project (a personal test file, a client demo copy) can't
+// accidentally seed the catalog with components that don't belong there. Empty means unrestricted
+// — deliberately not enforced until the real project id has been captured and set.
+const SYNC_ALLOWED_PROJECT_IDS = (Deno.env.get("SYNC_ALLOWED_PROJECT_IDS") ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean)
 
 function parseName(rawName: string): { tier: "Pro" | "Free"; category: string; name: string } {
   const trimmed = rawName.trim()
@@ -83,8 +92,15 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { nodes } = await req.json()
+    const { nodes, projectId, projectName } = await req.json()
     if (!Array.isArray(nodes)) throw new Error("Expected { nodes: [...] }")
+
+    if (SYNC_ALLOWED_PROJECT_IDS.length > 0 && !SYNC_ALLOWED_PROJECT_IDS.includes(projectId)) {
+      return new Response(
+        JSON.stringify({ error: `"${projectName ?? "This project"}" isn't the source project for the catalog — sync refused.` }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      )
+    }
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     const skipped: string[] = []
@@ -131,7 +147,7 @@ Deno.serve(async (req) => {
       if (error) throw error
     }
 
-    return new Response(JSON.stringify({ synced: candidates.length, skipped }), {
+    return new Response(JSON.stringify({ synced: candidates.length, skipped, projectId, projectName }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
   } catch (err) {
