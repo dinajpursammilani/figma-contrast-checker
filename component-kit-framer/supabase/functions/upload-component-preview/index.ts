@@ -48,6 +48,13 @@ Deno.serve(async (req) => {
       file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : file.type === "image/gif" ? "gif" : "jpg"
     const path = `${componentId}.${ext}`
 
+    // A re-upload in a different format (e.g. replacing a PNG with a JPG) would otherwise land
+    // at a different filename and leave the old one orphaned — always clear every possible
+    // extension for this component first, so one component never has more than one file.
+    await Promise.all(
+      ["png", "jpg", "webp", "gif"].filter((e) => e !== ext).map((e) => admin.storage.from(BUCKET).remove([`${componentId}.${e}`]))
+    )
+
     const { error: uploadError } = await admin.storage.from(BUCKET).upload(path, file, {
       upsert: true,
       contentType: file.type,
