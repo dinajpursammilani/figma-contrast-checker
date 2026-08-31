@@ -4,12 +4,17 @@
 // API) and POSTs them here; this function just validates the caller is an admin and writes the
 // rows.
 //
-// Tier and category both come from the component's own name, using Framer's "/" folder-naming
-// convention directly on it (same one used for text/color styles): "Pro/<Category>/<Name>" or
-// just "<Category>/<Name>" for Free (tier defaults to Free with no prefix at all). Deriving
-// category from the containing page instead was tried and live-disproven: getParent returns
-// null for every Component — master components don't live under the page tree the way regular
-// frames do, so there's no parent to read a page name from.
+// Tier comes from a plain "pro-" / "free-" prefix on the component's own name (e.g.
+// "pro-hero-banner"), not a "/" separator — "/" is Framer's own folder-nesting character, and
+// using it in a component name caused renames to visually re-nest the component into folders in
+// the Assets panel instead of behaving like a normal rename. A dash has no special meaning to
+// Framer, so it doesn't have that side effect. No prefix at all defaults to Free. Category isn't
+// parsed from the name at all — it defaults to "Components" and is set later in Edit Components;
+// deriving it from the containing page was tried and live-disproven (getParent returns null for
+// every Component — master components don't live under the page tree the way regular frames do).
+//
+// Older components synced before this existed may still use the "/" convention
+// ("Pro/<Category>/<Name>") — still parsed here for backward compatibility.
 //
 // IMPORTANT: a re-sync must never clobber a manual correction made in Edit Components, but it
 // also can't just freeze category/is_pro forever after first insert — that would block a
@@ -33,8 +38,18 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 // components into the shared catalog. Set via `supabase secrets set ADMIN_EMAILS=...`.
 const ADMIN_EMAILS = (Deno.env.get("ADMIN_EMAILS") ?? "").split(",").map((e) => e.trim().toLowerCase())
 
-function parseNew(rawName: string): { tier: "Pro" | "Free"; category: string; name: string } {
-  const segments = rawName.split("/").map((s) => s.trim()).filter(Boolean)
+function parseName(rawName: string): { tier: "Pro" | "Free"; category: string; name: string } {
+  const trimmed = rawName.trim()
+  const lower = trimmed.toLowerCase()
+
+  if (lower.startsWith("pro-") || lower.startsWith("free-")) {
+    const tier: "Pro" | "Free" = lower.startsWith("pro-") ? "Pro" : "Free"
+    const name = trimmed.slice(trimmed.indexOf("-") + 1).trim()
+    return { tier, category: "Components", name: name || trimmed }
+  }
+
+  // Backward compatibility with the old "/" convention.
+  const segments = trimmed.split("/").map((s) => s.trim()).filter(Boolean)
   const isPro = segments[0]?.toLowerCase() === "pro"
   const afterTier = isPro ? segments.slice(1) : segments
   const tier: "Pro" | "Free" = isPro ? "Pro" : "Free"
@@ -42,7 +57,7 @@ function parseNew(rawName: string): { tier: "Pro" | "Free"; category: string; na
   if (afterTier.length >= 2) {
     return { tier, category: afterTier[0], name: afterTier.slice(1).join(" / ") }
   }
-  return { tier, category: "Components", name: afterTier[0] ?? rawName }
+  return { tier, category: "Components", name: afterTier[0] ?? trimmed }
 }
 
 Deno.serve(async (req) => {
@@ -93,7 +108,7 @@ Deno.serve(async (req) => {
     const newRows = candidates
       .filter((c) => !existingById.has(c.id))
       .map((c) => {
-        const { tier, category, name } = parseNew(c.name)
+        const { tier, category, name } = parseName(c.name)
         return { id: c.id, name, category, is_pro: tier === "Pro", module_url: c.module_url, sort_order: 0 }
       })
     const updateRows = candidates.filter((c) => existingById.has(c.id))
@@ -104,7 +119,7 @@ Deno.serve(async (req) => {
     }
     for (const row of updateRows) {
       const existing = existingById.get(row.id)!
-      const { name, category, tier } = parseNew(row.name)
+      const { name, category, tier } = parseName(row.name)
       const fields: Record<string, unknown> = { name, module_url: row.module_url }
       // Only re-derive category/is_pro if nobody has manually overridden them in Edit
       // Components — that override always wins over whatever Framer currently says.
