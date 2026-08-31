@@ -31,11 +31,19 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 const ADMIN_EMAILS = (Deno.env.get("ADMIN_EMAILS") ?? "").split(",").map((e) => e.trim().toLowerCase())
 
 function parseNew(rawName: string, pageName: string | null): { tier: "Pro" | "Free"; category: string; name: string } {
-  // Only a leading "Pro/" is a recognized signal — everything else about the name is left
-  // exactly as the designer wrote it, no forced structure.
-  const isPro = /^pro\//i.test(rawName.trim())
-  const name = isPro ? rawName.trim().replace(/^pro\//i, "").trim() : rawName.trim()
-  return { tier: isPro ? "Pro" : "Free", category: pageName?.trim() || "Components", name: name || rawName }
+  // Tier can come from either signal: the component's own name ("Pro/Foo"), or — the one
+  // that actually matters, confirmed live — the page it lives on. Naming a page "pro/hero"
+  // groups it into a real "pro" folder in Framer's own Pages panel (same "/" convention as
+  // color/text styles), so a designer never has to touch a component's name at all.
+  const nameIsPro = /^pro\//i.test(rawName.trim())
+  const pageSegments = (pageName ?? "").split("/").map((s) => s.trim()).filter(Boolean)
+  const pageIsPro = pageSegments[0]?.toLowerCase() === "pro"
+  const tier: "Pro" | "Free" = nameIsPro || pageIsPro ? "Pro" : "Free"
+
+  const name = nameIsPro ? rawName.trim().replace(/^pro\//i, "").trim() : rawName.trim()
+  const category = pageIsPro ? pageSegments.slice(1).join(" / ") || "Components" : pageName?.trim() || "Components"
+
+  return { tier, category, name: name || rawName }
 }
 
 Deno.serve(async (req) => {
