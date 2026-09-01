@@ -153,7 +153,7 @@ export default function Colors() {
                   ))}
                 </div>
                 <span className="colors-saved-name">{p.name}</span>
-                <button className="unsave-btn" onClick={() => handleDeletePalette(p)}>
+                <button className="colors-saved-delete" onClick={() => handleDeletePalette(p)}>
                   ✕
                 </button>
               </div>

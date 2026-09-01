@@ -894,11 +894,23 @@ body {
 .colors-saved-swatches { display: flex; }
 .colors-saved-swatch {
   all: unset;
-  width: 16px; height: 16px; margin-left: -6px; border-radius: 999px !important;
+  box-sizing: border-box !important;
+  display: inline-block !important;
+  width: 16px !important; height: 16px !important; margin-left: -6px !important; border-radius: 999px !important;
   border: 2px solid var(--bg-subtle) !important; cursor: pointer !important;
 }
-.colors-saved-swatch:first-child { margin-left: 0; }
+.colors-saved-swatch:first-child { margin-left: 0 !important; }
 .colors-saved-name { flex: 1; font-size: 12px; font-weight: 600; color: var(--text); }
+.colors-saved-delete {
+  all: unset;
+  box-sizing: border-box !important;
+  width: 22px !important; height: 22px !important; border-radius: 999px !important; flex-shrink: 0 !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  background: rgba(0,0,0,0.15) !important; color: var(--text-muted) !important;
+  font-size: 11px !important; cursor: pointer !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+.colors-saved-delete:hover { background: var(--danger) !important; color: white !important; }
 
 /* ---- Admin section (Settings) ---- */
 
