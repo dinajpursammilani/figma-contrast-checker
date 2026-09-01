@@ -5,7 +5,8 @@ import { insertComponent, insertFromModuleUrl, warmInsertUrl, getCachedInsertUrl
 import { restoreSession } from "./lib/auth"
 import { fetchComponents, type ComponentRow } from "./lib/components"
 import { fetchComponentSource } from "./lib/componentSource"
-import { getProStatus, startCheckout } from "./lib/payments"
+import { getProStatus } from "./lib/payments"
+import ProDrawer from "./ProDrawer"
 import { SUPPORT_EMAIL } from "./lib/support"
 import { getOnboardingStatus, getFullName, friendlyNameFromEmail } from "./lib/profile"
 import Login from "./Login"
@@ -269,13 +270,7 @@ function Home({
   isPro: boolean | null
   onOpenCategory: (category: string | null) => void
 }) {
-  async function handleUpgrade() {
-    try {
-      await startCheckout()
-    } catch (err) {
-      console.error(err)
-    }
-  }
+  const [showProDrawer, setShowProDrawer] = useState(false)
 
   const [greetingName, setGreetingName] = useState<string>(user.email ? friendlyNameFromEmail(user.email) : "there")
 
@@ -363,11 +358,13 @@ function Home({
               )}
               <h3>Unlock every component</h3>
               <p>Pro components, saved boards, and the color tool — all in one plan.</p>
-              <button className="promo-btn" onClick={handleUpgrade}>
+              <button className="promo-btn" onClick={() => setShowProDrawer(true)}>
                 Upgrade to Pro
               </button>
             </div>
           )}
+
+          {showProDrawer && <ProDrawer onClose={() => setShowProDrawer(false)} />}
 
           <div className="home-section-label">Feedback</div>
           {SUPPORT_EMAIL ? (
@@ -438,6 +435,7 @@ function Browse({
   const [busyId, setBusyId] = useState<string | null>(null)
   const [savingComponent, setSavingComponent] = useState<ComponentRow | null>(null)
   const [detailComponent, setDetailComponent] = useState<ComponentRow | null>(null)
+  const [showProDrawer, setShowProDrawer] = useState(false)
 
   // Re-seed the category filter whenever the caller opens Browse with a different starting
   // category (e.g. tapping a different Home tile, or the bottom-nav Build tab for "all").
@@ -490,14 +488,6 @@ function Browse({
       console.error(err)
     } finally {
       setBusyId(null)
-    }
-  }
-
-  async function handleUpgradeClick() {
-    try {
-      await startCheckout()
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : "Couldn't start checkout — try again")
     }
   }
 
@@ -639,13 +629,15 @@ function Browse({
           locked={detailComponent.is_pro && isPro === false}
           onClose={() => setDetailComponent(null)}
           onInsert={() => handleInsert(detailComponent)}
-          onUpgrade={handleUpgradeClick}
+          onUpgrade={() => setShowProDrawer(true)}
           onSave={() => {
             setSavingComponent(detailComponent)
             setDetailComponent(null)
           }}
         />
       )}
+
+      {showProDrawer && <ProDrawer onClose={() => setShowProDrawer(false)} />}
     </div>
   )
 }
