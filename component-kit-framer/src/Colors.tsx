@@ -139,36 +139,30 @@ export default function Colors() {
             <div className="greeting-title" style={{ fontSize: 15 }}>
               Saved palettes
             </div>
-            {palettes.map((p) => (
-              <div key={p.id} className="colors-saved-row">
-                <div style={{ display: "flex", flexShrink: 0 }}>
-                  {p.colors.map((hex, i) => (
-                    <button
-                      key={i}
-                      title={hex}
-                      onClick={() => setBaseColor(p.colors[Math.floor(p.colors.length / 2)] ?? hex)}
-                      style={{
-                        width: 16,
-                        height: 16,
-                        marginLeft: i === 0 ? 0 : -6,
-                        borderRadius: "50%",
-                        border: "2px solid var(--bg-subtle)",
-                        background: hex,
-                        cursor: "pointer",
-                        padding: 0,
-                        flexShrink: 0,
-                      }}
-                    />
-                  ))}
-                </div>
-                <span className="colors-saved-name" style={{ textAlign: "left" }}>
-                  {p.name}
-                </span>
-                <button className="colors-saved-delete" onClick={() => handleDeletePalette(p)}>
-                  ✕
+            {palettes.map((p) => {
+              const mainHex = p.colors[Math.floor(p.colors.length / 2)] ?? p.colors[0] ?? "#888"
+              return (
+                <button
+                  key={p.id}
+                  className="colors-saved-row"
+                  title={`Click to load ${p.name} back into the picker`}
+                  onClick={() => setBaseColor(mainHex)}
+                  style={{ background: `${mainHex}26`, borderColor: `${mainHex}55` }}
+                >
+                  <span className="colors-saved-chip" style={{ background: mainHex }} />
+                  <span className="colors-saved-name">{p.name}</span>
+                  <span
+                    className="colors-saved-delete"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeletePalette(p)
+                    }}
+                  >
+                    ✕
+                  </span>
                 </button>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
