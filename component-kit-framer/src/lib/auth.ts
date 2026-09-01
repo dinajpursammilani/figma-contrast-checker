@@ -69,10 +69,16 @@ export async function signUp(
 ): Promise<{ user: User | null; error: string | null }> {
   const { data, error } = await withAuthTimeout(supabase.auth.signUp({ email, password }))
   if (error) return { user: null, error: error.message }
-  if (data.session) persistSessionInBackground(data.session)
   // The profiles row is created by a DB trigger the instant auth.users gets the new row, so
   // it already exists here — safe to save the name right away, no race condition.
   if (data.user) await saveFullName(data.user.id, fullName)
+  // Supabase always returns a `user` object on signUp, even when email confirmation is still
+  // pending — only `session` reflects that. Returning `data.user` here regardless of session
+  // used to let the caller treat an unconfirmed signup as a successful login (see Login.tsx),
+  // dropping the user into the app with no valid session at all. Only persist + return a user
+  // when there's an actual session to go with it.
+  if (!data.session) return { user: null, error: null }
+  persistSessionInBackground(data.session)
   return { user: data.user, error: null }
 }
 
