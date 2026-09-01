@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import { signOut } from "./lib/auth"
-import { getProStatus, startCheckout } from "./lib/payments"
+import { getProStatus } from "./lib/payments"
 import { getFullName } from "./lib/profile"
-import { MoonIcon, SunIcon, CrownIcon, RefreshIcon, ImageStackIcon, CodeIcon, LockIcon, TrashIcon } from "./icons"
+import { fetchPricing, updatePricing, formatPrice, type Pricing } from "./lib/pricing"
+import { MoonIcon, SunIcon, CrownIcon, RefreshIcon, ImageStackIcon, CodeIcon, LockIcon, TrashIcon, CreditCardIcon } from "./icons"
 import { SUPPORT_EMAIL } from "./lib/support"
 import { insertFromModuleUrl, insertLinkedFromUrl } from "./nodeBuilders"
 import { syncComponentsFromCurrentProject } from "./lib/sync"
@@ -15,6 +16,7 @@ import {
   type AllowedSyncProject,
 } from "./lib/syncProjects"
 import EditComponents from "./EditComponents"
+import ProDrawer from "./ProDrawer"
 
 type ThemePref = "light" | "dark"
 
@@ -32,9 +34,13 @@ export default function Settings({
   onComponentsChanged: () => void
 }) {
   const [isPro, setIsPro] = useState<boolean | null>(null)
-  const [checkingOut, setCheckingOut] = useState(false)
-  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [showProDrawer, setShowProDrawer] = useState(false)
   const [fullName, setFullName] = useState<string | null>(null)
+  const [showEditPricing, setShowEditPricing] = useState(false)
+  const [pricing, setPricing] = useState<Pricing | null>(null)
+  const [priceInput, setPriceInput] = useState("")
+  const [pricingBusy, setPricingBusy] = useState(false)
+  const [pricingStatus, setPricingStatus] = useState<string | null>(null)
   const [testUrl, setTestUrl] = useState("")
   const [testStatus, setTestStatus] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<string | null>(null)
@@ -67,15 +73,35 @@ export default function Settings({
     }
   }, [user.id])
 
-  async function handleUpgrade() {
-    setCheckingOut(true)
-    setCheckoutError(null)
+  function openEditPricing() {
+    setShowEditPricing((v) => !v)
+    if (!pricing) {
+      fetchPricing()
+        .then((p) => {
+          setPricing(p)
+          setPriceInput((p.amountCents / 100).toString())
+        })
+        .catch(() => setPricingStatus("Couldn't load current price"))
+    }
+  }
+
+  async function handleSavePricing() {
+    const dollars = Number(priceInput)
+    if (!Number.isFinite(dollars) || dollars <= 0) {
+      setPricingStatus("Enter a valid price")
+      return
+    }
+    setPricingBusy(true)
+    setPricingStatus(null)
     try {
-      await startCheckout()
+      const amountCents = Math.round(dollars * 100)
+      await updatePricing(amountCents)
+      setPricing({ amountCents, currency: pricing?.currency ?? "usd" })
+      setPricingStatus("Saved.")
     } catch (err) {
-      setCheckoutError(err instanceof Error ? err.message : "Couldn't start checkout — try again")
+      setPricingStatus(err instanceof Error ? err.message : "Couldn't save")
     } finally {
-      setCheckingOut(false)
+      setPricingBusy(false)
     }
   }
 
@@ -201,14 +227,10 @@ export default function Settings({
               <span className="settings-value">{isPro === null ? "…" : "Free"}</span>
             </div>
             {isPro === false && (
-              <button className="settings-upgrade-btn" onClick={handleUpgrade} disabled={checkingOut}>
+              <button className="settings-upgrade-btn" onClick={() => setShowProDrawer(true)}>
                 <CrownIcon />
-                {checkingOut ? "Opening checkout…" : "Upgrade to Pro"}
+                Upgrade to Pro
               </button>
-            )}
-            {checkoutError && <p className="settings-muted">{checkoutError}</p>}
-            {isPro === false && (
-              <p className="settings-muted">Checkout opens in your browser — once you're done, switch back to Framer and this updates automatically.</p>
             )}
           </>
         )}
@@ -257,6 +279,41 @@ export default function Settings({
             </span>
             <span className="admin-row-chevron">›</span>
           </button>
+
+          <button className="admin-row" onClick={openEditPricing}>
+            <span className="admin-row-icon">
+              <CreditCardIcon />
+            </span>
+            <span className="admin-row-text">
+              <span className="admin-row-title">Edit Pricing</span>
+              <span className="admin-row-sub">{pricing ? `Currently ${formatPrice(pricing)}` : "Change the Pro price shown in the app"}</span>
+            </span>
+            <span className="admin-row-chevron">{showEditPricing ? "⌄" : "›"}</span>
+          </button>
+
+          {showEditPricing && (
+            <div className="admin-devtools">
+              <div className="settings-row" style={{ gap: 8 }}>
+                <span>$</span>
+                <input
+                  className="settings-input"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={priceInput}
+                  onChange={(e) => setPriceInput(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+              </div>
+              <button className="settings-toggle" onClick={handleSavePricing} disabled={pricingBusy}>
+                {pricingBusy ? "Saving…" : "Save price"}
+              </button>
+              <p className="settings-muted">
+                This only changes what's displayed in the app — update the price on the actual Polar product separately so they match.
+              </p>
+              {pricingStatus && <p className="settings-muted">{pricingStatus}</p>}
+            </div>
+          )}
 
           <button className="admin-row" onClick={runSync} disabled={syncing}>
             <span className="admin-row-icon">
@@ -351,6 +408,15 @@ export default function Settings({
             </div>
           )}
         </div>
+      )}
+
+      {showProDrawer && (
+        <ProDrawer
+          onClose={() => {
+            setShowProDrawer(false)
+            getProStatus().then(setIsPro)
+          }}
+        />
       )}
     </div>
   )

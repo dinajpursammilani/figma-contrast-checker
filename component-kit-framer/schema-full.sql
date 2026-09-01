@@ -241,3 +241,31 @@ create table if not exists sync_allowed_projects (
   name text not null,
   created_at timestamptz not null default now()
 );
+
+-- ============================================================================
+-- pricing — single-row config for the Pro price shown in the app. Editable from Settings →
+-- Admin → Edit Pricing instead of being hardcoded, so it can change without a client release.
+-- Public read (everyone needs to see the price); writes only via the admin-update-pricing
+-- Edge Function, gated to ADMIN_EMAILS.
+-- ============================================================================
+
+create table if not exists pricing (
+  id text primary key,
+  amount_cents integer not null,
+  currency text not null default 'usd',
+  updated_at timestamptz not null default now()
+);
+
+insert into pricing (id, amount_cents, currency)
+values ('pro', 8900, 'usd')
+on conflict (id) do nothing;
+
+alter table pricing enable row level security;
+
+do $$ begin
+  create policy "Anyone can read pricing"
+    on pricing for select
+    to authenticated
+    using (true);
+exception when duplicate_object then null;
+end $$;

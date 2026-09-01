@@ -236,6 +236,14 @@ export function CrownIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function CheckIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M5 12.5 10 17.5 19 6.5" />
+    </Icon>
+  )
+}
+
 export function categoryIconFor(category: string) {
   switch (category) {
     case "Sections":
