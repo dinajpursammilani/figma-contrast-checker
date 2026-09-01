@@ -891,15 +891,6 @@ body {
   display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px;
   background: var(--bg-subtle);
 }
-.colors-saved-swatches { display: flex; }
-.colors-saved-swatch {
-  all: unset;
-  box-sizing: border-box !important;
-  display: inline-block !important;
-  width: 16px !important; height: 16px !important; margin-left: -6px !important; border-radius: 999px !important;
-  border: 2px solid var(--bg-subtle) !important; cursor: pointer !important;
-}
-.colors-saved-swatch:first-child { margin-left: 0 !important; }
 .colors-saved-name { flex: 1; font-size: 12px; font-weight: 600; color: var(--text); }
 .colors-saved-delete {
   all: unset;

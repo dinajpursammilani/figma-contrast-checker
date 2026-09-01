@@ -141,18 +141,29 @@ export default function Colors() {
             </div>
             {palettes.map((p) => (
               <div key={p.id} className="colors-saved-row">
-                <div className="colors-saved-swatches">
+                <div style={{ display: "flex", flexShrink: 0 }}>
                   {p.colors.map((hex, i) => (
                     <button
                       key={i}
-                      className="colors-saved-swatch"
-                      style={{ background: hex }}
                       title={hex}
                       onClick={() => setBaseColor(p.colors[Math.floor(p.colors.length / 2)] ?? hex)}
+                      style={{
+                        width: 16,
+                        height: 16,
+                        marginLeft: i === 0 ? 0 : -6,
+                        borderRadius: "50%",
+                        border: "2px solid var(--bg-subtle)",
+                        background: hex,
+                        cursor: "pointer",
+                        padding: 0,
+                        flexShrink: 0,
+                      }}
                     />
                   ))}
                 </div>
-                <span className="colors-saved-name">{p.name}</span>
+                <span className="colors-saved-name" style={{ textAlign: "left" }}>
+                  {p.name}
+                </span>
                 <button className="colors-saved-delete" onClick={() => handleDeletePalette(p)}>
                   ✕
                 </button>
