@@ -37,7 +37,6 @@ export default function ProDrawer({ onClose }: { onClose: () => void }) {
           <CrownIcon />
         </div>
         <div className="pro-drawer-title">Unlock every component</div>
-        <div className="pro-drawer-price">{pricing ? formatPrice(pricing) : "…"}</div>
 
         <ul className="pro-drawer-benefits">
           {BENEFITS.map((b) => (
@@ -48,7 +47,7 @@ export default function ProDrawer({ onClose }: { onClose: () => void }) {
         </ul>
 
         <button className="settings-upgrade-btn" onClick={handleContinue} disabled={checkingOut || !pricing}>
-          {checkingOut ? "Opening checkout…" : "Continue to checkout"}
+          {checkingOut ? "Opening checkout…" : pricing ? `Unlock everything · ${formatPrice(pricing)}` : "Continue"}
         </button>
         {error && <p className="settings-muted">{error}</p>}
         <p className="settings-muted">Checkout opens in your browser — once you're done, switch back to Framer and this updates automatically.</p>
