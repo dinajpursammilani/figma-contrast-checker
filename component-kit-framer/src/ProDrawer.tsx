@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { fetchPricing, formatPrice, type Pricing } from "./lib/pricing"
-import { startCheckout } from "./lib/payments"
+import { startCheckout, getProStatus } from "./lib/payments"
 import { CrownIcon, CheckIcon } from "./icons"
 
 const BENEFITS = ["Every Pro component, unlocked", "New components as they're added", "No watermarks or limits"]
@@ -14,6 +14,23 @@ export default function ProDrawer({ onClose }: { onClose: () => void }) {
     fetchPricing()
       .then(setPricing)
       .catch(() => setPricing(null))
+  }, [])
+
+  useEffect(() => {
+    // Checkout happens in a separate browser tab, so nothing pushes the result back in here —
+    // same pattern Settings/App use for the Plan section: refetch Pro status whenever the user
+    // switches focus back to Framer, and close the drawer the moment it comes back true.
+    async function checkIfNowPro() {
+      if (document.visibilityState !== "visible") return
+      if (await getProStatus()) onClose()
+    }
+    document.addEventListener("visibilitychange", checkIfNowPro)
+    window.addEventListener("focus", checkIfNowPro)
+    return () => {
+      document.removeEventListener("visibilitychange", checkIfNowPro)
+      window.removeEventListener("focus", checkIfNowPro)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function handleContinue() {
