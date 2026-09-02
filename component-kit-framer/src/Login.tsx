@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { signIn, signUp, signInWithGoogle, pollGoogleRelay } from "./lib/auth"
 import type { User } from "@supabase/supabase-js"
 
@@ -20,9 +20,19 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [googleUrl, setGoogleUrl] = useState<string | null>(null)
+  const cancelGoogleRef = useRef(false)
+
+  function handleCancelGoogleSignIn() {
+    cancelGoogleRef.current = true
+    setBusy(false)
+    setGoogleUrl(null)
+  }
 
   async function handleGoogleSignIn() {
     setError(null)
+    setGoogleUrl(null)
+    cancelGoogleRef.current = false
     setBusy(true)
     try {
       const { url, relayId, error: startError } = await signInWithGoogle()
@@ -33,13 +43,19 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
       }
 
       const popup = window.open(url, "_blank")
+      // Shown alongside the loading state right away, not just after things go wrong — a popup
+      // blocker can silently kill window.open, or the tab can get lost/closed by accident, with
+      // nothing telling the user why nothing happened for up to 90s otherwise.
+      setGoogleUrl(url)
 
       // Polling a server-side relay, not window.opener.postMessage or BroadcastChannel — both
       // turned out to be partitioned separately for this iframe vs. the popup tab (same as
       // localStorage), so nothing client-side actually crosses that boundary here.
-      const result = await pollGoogleRelay(relayId)
+      const result = await pollGoogleRelay(relayId, undefined, () => cancelGoogleRef.current)
       setBusy(false)
+      setGoogleUrl(null)
       if (popup && !popup.closed) popup.close()
+      if (result.cancelled) return
       if (result.error) {
         setError(result.error)
         return
@@ -97,8 +113,20 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
 
       <button className="login-google-btn" type="button" onClick={handleGoogleSignIn} disabled={busy}>
         <GoogleIcon />
-        Continue with Google
+        {busy && googleUrl ? "Waiting for Google…" : "Continue with Google"}
       </button>
+      {busy && googleUrl && (
+        <p className="login-google-fallback">
+          Didn't open?{" "}
+          <a href={googleUrl} target="_blank" rel="noreferrer">
+            Click here
+          </a>
+          {" · "}
+          <button type="button" className="login-google-cancel" onClick={handleCancelGoogleSignIn}>
+            Cancel
+          </button>
+        </p>
+      )}
 
       <div className="login-divider">
         <span>or</span>

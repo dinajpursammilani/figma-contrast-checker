@@ -8,6 +8,7 @@ const BENEFITS = ["Every Pro component, unlocked", "New components as they're ad
 export default function ProDrawer({ onClose }: { onClose: () => void }) {
   const [pricing, setPricing] = useState<Pricing | null>(null)
   const [checkingOut, setCheckingOut] = useState(false)
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -36,8 +37,10 @@ export default function ProDrawer({ onClose }: { onClose: () => void }) {
   async function handleContinue() {
     setCheckingOut(true)
     setError(null)
+    setCheckoutUrl(null)
     try {
-      await startCheckout()
+      const url = await startCheckout()
+      setCheckoutUrl(url)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start checkout — try again")
     } finally {
@@ -67,6 +70,14 @@ export default function ProDrawer({ onClose }: { onClose: () => void }) {
           {checkingOut ? "Opening checkout…" : pricing ? `Unlock everything · ${formatPrice(pricing)}` : "Continue"}
         </button>
         {error && <p className="settings-muted">{error}</p>}
+        {checkoutUrl && (
+          <p className="settings-muted">
+            Didn't open?{" "}
+            <a className="settings-link" href={checkoutUrl} target="_blank" rel="noreferrer">
+              Click here
+            </a>
+          </p>
+        )}
         <p className="settings-muted">Checkout opens in your browser — once you're done, switch back to Framer and this updates automatically.</p>
       </div>
     </div>

@@ -108,10 +108,19 @@ export async function signInWithGoogle(): Promise<{ url: string | null; relayId:
 
 /** Polls the oauth-relay Edge Function until the callback tab has stored the session under
  * relayId (or times out) — same shape as refetching Pro status on refocus after Polar
- * checkout, just polled directly since there's no "switch back to Framer" moment to hook. */
-export async function pollGoogleRelay(relayId: string, timeoutMs = 90000): Promise<{ user: User | null; error: string | null }> {
+ * checkout, just polled directly since there's no "switch back to Framer" moment to hook.
+ *
+ * isCancelled lets the caller bail out early (e.g. a Cancel button) instead of the button
+ * staying stuck "loading" for the full timeout with no way out — a real complaint, since a
+ * blocked/lost popup used to mean waiting the full 90s before anything told the user why. */
+export async function pollGoogleRelay(
+  relayId: string,
+  timeoutMs = 90000,
+  isCancelled?: () => boolean
+): Promise<{ user: User | null; error: string | null; cancelled?: boolean }> {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
+    if (isCancelled?.()) return { user: null, error: null, cancelled: true }
     const { data, error } = await supabase.functions.invoke<{
       ready: boolean
       accessToken?: string
