@@ -18,6 +18,8 @@ import {
 import EditComponents from "./EditComponents"
 import ReviewSync from "./ReviewSync"
 import ProDrawer from "./ProDrawer"
+import LegalDoc from "./LegalDoc"
+import { TERMS_SECTIONS, PRIVACY_SECTIONS } from "./legalContent"
 import { fetchStagedComponents } from "./lib/stagedComponents"
 
 type ThemePref = "light" | "dark"
@@ -51,6 +53,7 @@ export default function Settings({
   const [showReviewSync, setShowReviewSync] = useState(false)
   const [pendingCount, setPendingCount] = useState<number | null>(null)
   const [showDevTools, setShowDevTools] = useState(false)
+  const [showLegal, setShowLegal] = useState<"terms" | "privacy" | null>(null)
   const [showSyncProjects, setShowSyncProjects] = useState(false)
   const [allowedProjects, setAllowedProjects] = useState<AllowedSyncProject[] | null>(null)
   const [syncProjectsBusy, setSyncProjectsBusy] = useState(false)
@@ -211,6 +214,16 @@ export default function Settings({
     )
   }
 
+  if (showLegal) {
+    return (
+      <LegalDoc
+        title={showLegal === "terms" ? "Terms of Service" : "Privacy Policy"}
+        sections={showLegal === "terms" ? TERMS_SECTIONS : PRIVACY_SECTIONS}
+        onBack={() => setShowLegal(null)}
+      />
+    )
+  }
+
   return (
     <div className="settings">
       <div className="settings-section">
@@ -288,6 +301,16 @@ export default function Settings({
         ) : (
           <p className="settings-muted">Support contact not set up yet.</p>
         )}
+      </div>
+
+      <div className="settings-section">
+        <h3>Legal</h3>
+        <button className="settings-link" style={{ display: "block", marginBottom: 8 }} onClick={() => setShowLegal("terms")}>
+          Terms of Service →
+        </button>
+        <button className="settings-link" style={{ display: "block" }} onClick={() => setShowLegal("privacy")}>
+          Privacy Policy →
+        </button>
       </div>
 
       {isAdmin && (
