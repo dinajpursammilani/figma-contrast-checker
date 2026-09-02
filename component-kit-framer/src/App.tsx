@@ -28,6 +28,7 @@ import {
   MessageIcon,
   BugIcon,
   CloseIcon,
+  GridIcon,
   categoryIconFor,
 } from "./icons"
 
@@ -317,7 +318,7 @@ function Home({
               <div className="blueprint blueprint-hero" dangerouslySetInnerHTML={{ __html: heroSample.preview_svg! }} />
             )}
             <div className="tile-badge">
-              <SparkleIcon />
+              <GridIcon />
             </div>
             <div className="tile-text">
               <div className="tile-name">Browse all</div>

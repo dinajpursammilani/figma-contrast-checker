@@ -244,6 +244,80 @@ export function CheckIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function BoxIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3 3.5 7.5v9L12 21l8.5-4.5v-9Z" />
+      <path d="M3.5 7.5 12 12l8.5-4.5M12 12v9" />
+    </Icon>
+  )
+}
+
+export function LayoutBannerIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="4" width="18" height="16" rx="1.5" />
+      <path d="M3 9h18M8 13h8M8 16.5h5" />
+    </Icon>
+  )
+}
+
+export function TagIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M11.5 3H5.5a2 2 0 0 0-2 2v6l10 10a2 2 0 0 0 2.83 0l6.17-6.17a2 2 0 0 0 0-2.83Z" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+    </Icon>
+  )
+}
+
+export function QuoteIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M9.5 6.5c-2.8 0-5 2.2-5 5v6h6v-6h-3.2c0-1.7 1-3 2.7-3.4Z" />
+      <path d="M19 6.5c-2.8 0-5 2.2-5 5v6h6v-6h-3.2c0-1.7 1-3 2.7-3.4Z" />
+    </Icon>
+  )
+}
+
+export function QuestionIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.3 9.5a2.7 2.7 0 1 1 3.9 2.4c-.8.5-1.2.9-1.2 1.9" />
+      <path d="M12 17.2v.1" />
+    </Icon>
+  )
+}
+
+export function FormIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="5" width="18" height="4.5" rx="1.2" />
+      <rect x="3" y="12.5" width="18" height="4.5" rx="1.2" />
+      <path d="M6 7.25h.01M6 14.75h.01" />
+    </Icon>
+  )
+}
+
+export function ButtonShapeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="8" width="18" height="8" rx="4" />
+      <path d="M8.5 12h7" />
+    </Icon>
+  )
+}
+
+export function FooterBarIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M4 4h16M4 8h16" />
+      <rect x="4" y="14" width="16" height="6" rx="1.2" />
+    </Icon>
+  )
+}
+
 export function categoryIconFor(category: string) {
   switch (category) {
     case "Sections":
@@ -252,6 +326,24 @@ export function categoryIconFor(category: string) {
       return CompassIcon
     case "Cards":
       return CreditCardIcon
+    case "Components":
+      return BoxIcon
+    case "Hero":
+    case "Heroes":
+      return LayoutBannerIcon
+    case "Pricing":
+      return TagIcon
+    case "Testimonials":
+      return QuoteIcon
+    case "FAQ":
+    case "FAQs":
+      return QuestionIcon
+    case "Forms":
+      return FormIcon
+    case "Buttons":
+      return ButtonShapeIcon
+    case "Footer":
+      return FooterBarIcon
     default:
       return SparkleIcon
   }
