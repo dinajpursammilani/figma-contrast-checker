@@ -67,6 +67,14 @@ export function generateScale(baseHex: string): { step: number; hex: string }[] 
   return SCALE_LIGHTNESS.map((l, i) => ({ step: SCALE_STEPS[i], hex: hslToHex({ h, s, l }) }))
 }
 
+/** Framer's Color Style API stores/expects rgba strings, not hex (confirmed in the SDK's own
+ * doc examples — "rgba(242, 59, 57, 1)"), so anything we hand to createColorStyle needs this
+ * conversion first. */
+export function hexToRgbaString(hex: string, alpha = 1): string {
+  const { r, g, b } = hexToRgb(hex)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
 export function readableTextColor(hex: string): "#000000" | "#ffffff" {
   const { r, g, b } = hexToRgb(hex)
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255

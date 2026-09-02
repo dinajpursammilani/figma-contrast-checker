@@ -869,6 +869,26 @@ body {
 
 /* ---- Colors tool ---- */
 
+.colors-mode-tabs { display: flex; gap: 6px; padding: 0 18px 10px; flex-shrink: 0; }
+.colors-mode-tab {
+  all: unset;
+  box-sizing: border-box !important;
+  padding: 7px 14px !important; border-radius: 999px !important; cursor: pointer !important;
+  font-size: 12px !important; font-weight: 700 !important; color: var(--text-muted) !important;
+  background: var(--bg-subtle) !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+.colors-mode-tab.active { background: var(--accent) !important; color: white !important; }
+
+.colors-text-controls { display: flex; flex-direction: column; gap: 6px; padding: 4px 18px 14px; }
+.colors-text-controls input[type="range"] { width: 100%; accent-color: var(--accent); }
+.colors-text-controls .onboarding-toggle-row { margin-bottom: 4px; }
+
+.colors-text-preview-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px;
+  background: var(--bg-subtle); color: var(--text);
+}
+
 .colors-scroll { flex: 1 !important; min-height: 0 !important; overflow-y: auto !important; padding-bottom: 18px; }
 
 .colors-picker-row { display: flex; gap: 8px; padding: 0 18px 4px; }
