@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { generateScale, readableTextColor } from "./lib/color"
 import { applyColorToSelection } from "./lib/applyColor"
 import { recolorSelection } from "./lib/recolor"
+import { dumpSelectedMarkup, type MarkupDump } from "./lib/debugMarkup"
 import { fetchPalettes, savePalette, deletePalette, type Palette } from "./lib/palettes"
 
 export default function Colors() {
@@ -13,6 +14,8 @@ export default function Colors() {
   const [saving, setSaving] = useState(false)
   const [recolorTarget, setRecolorTarget] = useState("#4A5AFF")
   const [recoloring, setRecoloring] = useState(false)
+  const [markupDump, setMarkupDump] = useState<MarkupDump | null>(null)
+  const [markupError, setMarkupError] = useState<string | null>(null)
 
   const scale = generateScale(baseColor)
 
@@ -63,6 +66,16 @@ export default function Colors() {
       showToast(err instanceof Error ? err.message : "Couldn't recolor")
     } finally {
       setRecoloring(false)
+    }
+  }
+
+  async function handleDumpMarkup() {
+    setMarkupError(null)
+    setMarkupDump(null)
+    try {
+      setMarkupDump(await dumpSelectedMarkup())
+    } catch (err) {
+      setMarkupError(err instanceof Error ? err.message : "Couldn't read selection")
     }
   }
 
@@ -122,6 +135,30 @@ export default function Colors() {
             Shifts the component's whole brand color family to this new hue — a light hover tint stays light, a dark button stays
             dark, just repainted. Grays, black, and white are left alone.
           </p>
+        </div>
+
+        <div className="colors-recolor">
+          <div className="colors-recolor-label">TEMP DEBUG — dump selected component's raw markup</div>
+          <button className="boards-create-btn" onClick={handleDumpMarkup} style={{ alignSelf: "flex-start" }}>
+            Dump SVG/text markup
+          </button>
+          {markupError && <p className="settings-muted">{markupError}</p>}
+          {markupDump && (
+            <div style={{ fontFamily: "monospace", fontSize: 10, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+              <p className="settings-muted">SVG samples ({markupDump.svgSamples.length}):</p>
+              {markupDump.svgSamples.map((s, i) => (
+                <p key={i} className="settings-muted">
+                  [{s.name}] {s.markup}
+                </p>
+              ))}
+              <p className="settings-muted">Text samples ({markupDump.textSamples.length}):</p>
+              {markupDump.textSamples.map((s, i) => (
+                <p key={i} className="settings-muted">
+                  [{s.name}] {s.html}
+                </p>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="colors-divider" />
