@@ -145,6 +145,20 @@ export default function Colors() {
           {markupError && <p className="settings-muted">{markupError}</p>}
           {markupDump && (
             <div style={{ fontFamily: "monospace", fontSize: 10, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+              <button
+                className="boards-create-btn"
+                style={{ alignSelf: "flex-start", marginBottom: 8 }}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(JSON.stringify(markupDump, null, 2))
+                    showToast("Copied to clipboard")
+                  } catch {
+                    showToast("Couldn't copy")
+                  }
+                }}
+              >
+                Copy dump to clipboard
+              </button>
               <p className="settings-muted">SVG samples ({markupDump.svgSamples.length}):</p>
               {markupDump.svgSamples.map((s, i) => (
                 <p key={i} className="settings-muted">
