@@ -148,7 +148,11 @@ export async function recolorSelection(targetHex: string): Promise<number> {
     if (!hasFill) continue
     try {
       const updated = (await node.setAttributes({ svg: markup })) as { svg?: unknown } | null
-      if (updated && typeof updated.svg === "string" && updated.svg === markup) changed++
+      // Not an exact string match — Framer may re-serialize the SVG (different whitespace/line
+      // breaks) when it stores it, so requiring byte-for-byte equality here would report
+      // failure even on a genuinely successful write. Checking the target color actually shows
+      // up somewhere in what came back is a looser but more honest signal.
+      if (updated && typeof updated.svg === "string" && updated.svg.toLowerCase().includes(targetHex.toLowerCase())) changed++
     } catch {
       // Same instance-descendant caveat as above — skip, don't fail the whole batch.
     }
