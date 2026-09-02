@@ -1,6 +1,6 @@
 # Skela — Terms of Service
 
-**Last updated: [date]**
+**Last updated: September 2, 2026**
 
 By using the Skela plugin ("Skela," "we," "us") or its associated services, you agree to these Terms.
 
@@ -14,7 +14,7 @@ By using the Skela plugin ("Skela," "we," "us") or its associated services, you 
 - Reverse-engineer or extract components to build a competing product or plugin
 - Share your Pro account access with others
 
-**4. Payment & refunds.** Pro access is a paid upgrade processed through Polar, our payment provider. Refunds are available within 30 days only for unresolved technical issues preventing you from using the product — not simply changing your mind. Skela is treated as a non-returnable digital good once access is granted.
+**4. Payment & refunds.** Pro access is a paid upgrade processed through Polar, our payment provider. Refunds are not issued right now. Skela is treated as a non-returnable digital good once access is granted.
 
 **5. Termination.** We may suspend or terminate your account without refund if we suspect a violation of these Terms, without obligation to explain why.
 
@@ -22,13 +22,13 @@ By using the Skela plugin ("Skela," "we," "us") or its associated services, you 
 
 **7. Changes.** We may update these Terms or the plugin itself at any time. Continued use after changes means you accept the updated Terms.
 
-**8. Contact.** Questions? Reach us at [support email].
+**8. Contact.** Questions? Reach us at dominik@fackt.io.
 
 ---
 
 # Skela — Privacy Policy
 
-**Last updated: [date]**
+**Last updated: September 2, 2026**
 
 **What we collect:**
 - **Account info**: your email address, and your name if you provide it (email signup or Google sign-in)
@@ -49,6 +49,6 @@ We do not use analytics or tracking cookies of any kind. There is no ad tracking
 
 We don't sell your data, and we don't share it with anyone beyond these three providers.
 
-**Your rights:** You can request account deletion at any time by contacting [support email]. Deleting your account removes your saved boards and profile data.
+**Your rights:** You can request account deletion at any time by contacting dominik@fackt.io. Deleting your account removes your saved boards and profile data.
 
-**Contact:** [support email]
+**Contact:** dominik@fackt.io

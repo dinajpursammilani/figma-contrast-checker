@@ -2,8 +2,8 @@
 // for review/signoff; this is the same text rendered inside the plugin itself so it never needs
 // external hosting (Supabase Storage can't reliably serve real HTML pages — see the
 // abandoned static-pages bucket attempt).
-export const LAST_UPDATED = "[date]"
-export const SUPPORT_CONTACT = "[support email]"
+export const LAST_UPDATED = "September 2, 2026"
+export const SUPPORT_CONTACT = "dominik@fackt.io"
 
 export interface LegalSection {
   heading: string
@@ -36,7 +36,7 @@ export const TERMS_SECTIONS: LegalSection[] = [
   {
     heading: "4. Payment & refunds",
     body: [
-      "Pro access is a paid upgrade processed through Polar, our payment provider. Refunds are available within 30 days only for unresolved technical issues preventing you from using the product — not simply changing your mind. Skela is treated as a non-returnable digital good once access is granted.",
+      "Pro access is a paid upgrade processed through Polar, our payment provider. Refunds are not issued right now. Skela is treated as a non-returnable digital good once access is granted.",
     ],
   },
   {
