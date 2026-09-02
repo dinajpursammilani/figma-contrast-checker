@@ -5,22 +5,30 @@ type FontWeight = 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
 import { hexToRgbaString } from "./color"
 import { generateTextScale } from "./textScale"
 
-/** Creates one real, project-level Framer Color Style per scale step — these show up natively
- * in Framer's own Assets → Styles panel, reusable by any component in the project, not just
- * something displayed inside this plugin. Organized into a folder via "/" in the name, same
- * convention Framer's own docs use. Unlike the abandoned per-instance recolor attempt, this
- * operates on project-level style definitions, not a component instance's protected internals —
- * createColorStyle is a first-class, documented Plugin API method, not something we're
- * reverse-engineering. */
-export async function insertColorStyles(paletteName: string, scale: { step: number; hex: string }[]): Promise<number> {
+/** Creates one real, project-level Framer Color Style per scale step, each with both a light
+ * and dark value — these show up natively in Framer's own Assets → Styles panel, reusable by
+ * any component in the project (and Framer's own light/dark theme switching applies to them
+ * automatically), not just something displayed inside this plugin. Organized into a folder via
+ * "/" in the name, same convention Framer's own docs use. Unlike the abandoned per-instance
+ * recolor attempt, this operates on project-level style definitions, not a component instance's
+ * protected internals — createColorStyle is a first-class, documented Plugin API method, not
+ * something we're reverse-engineering. */
+export async function insertColorStyles(
+  paletteName: string,
+  scale: { step: number; lightHex: string; darkHex: string }[]
+): Promise<number> {
   if (!framer.isAllowedTo("createColorStyle")) {
     throw new Error("This Framer workspace/plan doesn't allow plugins to create styles.")
   }
   const folder = paletteName.trim() || "Palette"
   let created = 0
-  for (const { step, hex } of scale) {
+  for (const { step, lightHex, darkHex } of scale) {
     try {
-      await framer.createColorStyle({ name: `${folder}/${step}`, light: hexToRgbaString(hex) })
+      await framer.createColorStyle({
+        name: `${folder}/${step}`,
+        light: hexToRgbaString(lightHex),
+        dark: hexToRgbaString(darkHex),
+      })
       created++
     } catch {
       // A style with this exact name may already exist, or this particular step failed for

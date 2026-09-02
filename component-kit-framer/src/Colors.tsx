@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
-import { generateScale, readableTextColor } from "./lib/color"
+import { generateScale, readableTextColor, hexToHsl, hslToHex } from "./lib/color"
+import { SunIcon, MoonIcon } from "./icons"
 import { applyColorToSelection } from "./lib/applyColor"
 import { insertColorStyles, insertTextStyles } from "./lib/framerStyles"
 import { generateTextScale } from "./lib/textScale"
@@ -13,9 +14,20 @@ const RATIO_PRESETS = [
   { label: "Perfect Fourth", value: 1.333 },
 ]
 
+/** A reasonable starting dark-theme counterpart for a light base color — deeper and a touch
+ * more saturated, the same rough adjustment most design systems make by hand. Just a starting
+ * point: the dark swatch has its own picker, so this only matters until someone touches it. */
+function darkenForTheme(hex: string): string {
+  const { h, s, l } = hexToHsl(hex)
+  return hslToHex({ h, s: Math.min(100, s + 8), l: Math.max(12, l - 32) })
+}
+
 export default function Colors() {
   const [mode, setMode] = useState<Mode>("color")
   const [baseColor, setBaseColor] = useState("#4A5AFF")
+  const [darkColor, setDarkColor] = useState(() => darkenForTheme("#4A5AFF"))
+  const [darkTouched, setDarkTouched] = useState(false)
+  const [theme, setTheme] = useState<"light" | "dark">("light")
   const [toast, setToast] = useState<string | null>(null)
   const [applyingHex, setApplyingHex] = useState<string | null>(null)
   const [palettes, setPalettes] = useState<Palette[] | null>(null)
@@ -30,8 +42,22 @@ export default function Colors() {
   const [textFolderName, setTextFolderName] = useState("")
   const [insertingText, setInsertingText] = useState(false)
 
-  const scale = generateScale(baseColor)
+  const lightScale = generateScale(baseColor)
+  const darkScale = generateScale(darkColor)
+  const scale = theme === "light" ? lightScale : darkScale
   const textScale = generateTextScale(baseSize, ratio)
+  const [activeStep, setActiveStep] = useState(scale[Math.floor(scale.length / 2)].step)
+  const active = scale.find((s) => s.step === activeStep) ?? scale[0]
+
+  useEffect(() => {
+    setActiveStep(scale[Math.floor(scale.length / 2)].step)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme, baseColor, darkColor])
+
+  useEffect(() => {
+    if (!darkTouched) setDarkColor(darkenForTheme(baseColor))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseColor])
 
   useEffect(() => {
     loadPalettes()
@@ -91,7 +117,8 @@ export default function Colors() {
     const name = saveName.trim() || "Palette"
     setInsertingStyles(true)
     try {
-      const count = await insertColorStyles(name, scale)
+      const paired = lightScale.map((s, i) => ({ step: s.step, lightHex: s.hex, darkHex: darkScale[i].hex }))
+      const count = await insertColorStyles(name, paired)
       showToast(`Added ${count} color style${count === 1 ? "" : "s"} to Assets → Styles`)
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Couldn't insert styles")
@@ -145,41 +172,71 @@ export default function Colors() {
 
       {mode === "color" ? (
         <div className="colors-scroll">
+          <div className="colors-theme-row">
+            <span className="colors-section-label" style={{ margin: 0 }}>
+              {theme === "light" ? "Light" : "Dark"} base
+            </span>
+            <div className="colors-theme-toggle">
+              <button className={theme === "light" ? "active" : ""} onClick={() => setTheme("light")} title="Light theme">
+                <SunIcon />
+              </button>
+              <button className={theme === "dark" ? "active" : ""} onClick={() => setTheme("dark")} title="Dark theme">
+                <MoonIcon />
+              </button>
+            </div>
+          </div>
+
           <div className="colors-picker-row">
             <input
               type="color"
               className="colors-swatch-input"
-              value={baseColor}
-              onChange={(e) => setBaseColor(e.target.value)}
+              value={theme === "light" ? baseColor : darkColor}
+              onChange={(e) => {
+                if (theme === "light") setBaseColor(e.target.value)
+                else {
+                  setDarkTouched(true)
+                  setDarkColor(e.target.value)
+                }
+              }}
             />
             <input
               className="search colors-hex-input"
-              value={baseColor}
-              onChange={(e) => setBaseColor(e.target.value)}
+              value={theme === "light" ? baseColor : darkColor}
+              onChange={(e) => {
+                if (theme === "light") setBaseColor(e.target.value)
+                else {
+                  setDarkTouched(true)
+                  setDarkColor(e.target.value)
+                }
+              }}
               spellCheck={false}
             />
           </div>
 
-          <div className="colors-scale">
+          <div className="colors-section-label">Scale</div>
+          <div className="colors-strip">
             {scale.map(({ step, hex }) => (
-              <div key={step} className="colors-scale-row" style={{ background: hex, color: readableTextColor(hex) }}>
-                <span className="colors-scale-step">{step}</span>
-                <span className="colors-scale-hex">{hex}</span>
-                <div className="colors-scale-actions">
-                  <button className="colors-scale-btn" onClick={() => handleCopy(hex)} style={{ color: readableTextColor(hex) }}>
-                    Copy
-                  </button>
-                  <button
-                    className="colors-scale-btn"
-                    onClick={() => handleApply(hex)}
-                    disabled={applyingHex === hex}
-                    style={{ color: readableTextColor(hex) }}
-                  >
-                    {applyingHex === hex ? "Applying…" : "Apply →"}
-                  </button>
-                </div>
-              </div>
+              <button
+                key={step}
+                className={`colors-strip-seg ${step === activeStep ? "active" : ""}`}
+                style={{ background: hex, color: readableTextColor(hex) }}
+                onClick={() => setActiveStep(step)}
+              >
+                {step}
+              </button>
             ))}
+          </div>
+
+          <div className="colors-active-row">
+            <span className="colors-active-hex">{active.hex}</span>
+            <div className="colors-active-actions">
+              <button className="colors-scale-btn" onClick={() => handleCopy(active.hex)}>
+                Copy
+              </button>
+              <button className="colors-scale-btn" onClick={() => handleApply(active.hex)} disabled={applyingHex === active.hex}>
+                {applyingHex === active.hex ? "Applying…" : "Apply →"}
+              </button>
+            </div>
           </div>
 
           <div className="colors-save-row">
@@ -194,49 +251,39 @@ export default function Colors() {
               {saving ? "…" : "Save"}
             </button>
           </div>
-          <button className="settings-upgrade-btn" style={{ marginTop: 8 }} onClick={handleInsertColorStyles} disabled={insertingStyles}>
+          <button className="settings-upgrade-btn" style={{ marginTop: 4 }} onClick={handleInsertColorStyles} disabled={insertingStyles}>
             {insertingStyles ? "Adding…" : "Insert as Color Styles →"}
           </button>
-          <p className="settings-muted" style={{ padding: "6px 18px 0" }}>
+          <p className="settings-muted colors-hint">
             Adds every step above as a real Framer Color Style under Assets → Styles — reusable by any component in this project.
           </p>
 
           {palettes && palettes.length > 0 && (
             <div className="colors-saved">
-              <div className="greeting-title" style={{ fontSize: 15 }}>
-                Saved palettes
-              </div>
-              {palettes.map((p) => {
-                const mainHex = p.colors[Math.floor(p.colors.length / 2)] ?? p.colors[0] ?? "#888"
-                return (
-                  <button
-                    key={p.id}
-                    className="colors-saved-row"
-                    title={`Click to load ${p.name} back into the picker`}
-                    onClick={() => setBaseColor(mainHex)}
-                    style={{ background: `${mainHex}26`, borderColor: `${mainHex}55` }}
-                  >
-                    <span className="colors-saved-chip" style={{ background: mainHex }} />
-                    <span className="colors-saved-name">{p.name}</span>
-                    <span
-                      className="colors-saved-delete"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeletePalette(p)
-                      }}
-                    >
-                      ✕
-                    </span>
+              <div className="colors-section-label">Saved palettes</div>
+              {palettes.map((p) => (
+                <div key={p.id} className="colors-saved-row">
+                  <button className="colors-strip colors-strip-mini" onClick={() => setBaseColor(p.colors[Math.floor(p.colors.length / 2)] ?? p.colors[0])}>
+                    {p.colors.map((hex, i) => (
+                      <span key={i} className="colors-strip-seg" style={{ background: hex }} />
+                    ))}
                   </button>
-                )
-              })}
+                  <span className="colors-saved-name">{p.name}</span>
+                  <span className="colors-saved-delete" onClick={() => handleDeletePalette(p)}>
+                    ✕
+                  </span>
+                </div>
+              ))}
             </div>
           )}
         </div>
       ) : (
         <div className="colors-scroll">
           <div className="colors-text-controls">
-            <label className="onboarding-label">Base size ({baseSize}px)</label>
+            <div className="colors-control-row">
+              <label className="onboarding-label">Base size</label>
+              <span className="colors-control-value">{baseSize}px</span>
+            </div>
             <input
               type="range"
               min={12}
@@ -258,7 +305,10 @@ export default function Colors() {
               ))}
             </div>
 
-            <label className="onboarding-label">Weight ({weight})</label>
+            <div className="colors-control-row">
+              <label className="onboarding-label">Weight</label>
+              <span className="colors-control-value">{weight}</span>
+            </div>
             <input
               type="range"
               min={100}
@@ -272,18 +322,6 @@ export default function Colors() {
             <input className="onboarding-input" value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} />
           </div>
 
-          <div className="colors-scale">
-            {textScale.map((s) => (
-              <div key={s.label} className="colors-text-preview-row">
-                <span className="colors-scale-step">{s.label}</span>
-                <span style={{ fontSize: Math.min(s.sizePx, 32), fontWeight: weight, flex: 1, overflow: "hidden", whiteSpace: "nowrap" }}>
-                  The quick brown fox
-                </span>
-                <span className="colors-scale-hex">{s.sizePx}px</span>
-              </div>
-            ))}
-          </div>
-
           <div className="colors-save-row">
             <input
               className="search"
@@ -292,12 +330,32 @@ export default function Colors() {
               onChange={(e) => setTextFolderName(e.target.value)}
             />
           </div>
-          <button className="settings-upgrade-btn" style={{ marginTop: 8 }} onClick={handleInsertTextStyles} disabled={insertingText}>
+          <button className="settings-upgrade-btn" style={{ marginTop: 4 }} onClick={handleInsertTextStyles} disabled={insertingText}>
             {insertingText ? "Adding…" : "Insert Text Styles →"}
           </button>
-          <p className="settings-muted" style={{ padding: "6px 18px 18px" }}>
-            Adds H1-H6 and P1-P3 as real Framer Text Styles under Assets → Styles. Font/weight is applied on a best-effort basis —
-            if "{fontFamily}" isn't available, styles are still created using Framer's default font.
+
+          <div className="colors-section-label" style={{ marginTop: 18 }}>
+            Preview
+          </div>
+          <div className="colors-type-specimen">
+            {textScale.map((s) => (
+              <div key={s.label} className="colors-type-row">
+                <div className="colors-type-meta">
+                  <span className="colors-type-label">{s.label}</span>
+                  <span className="colors-type-size">{s.sizePx}px</span>
+                </div>
+                <div
+                  className="colors-type-sample"
+                  style={{ fontSize: s.sizePx, fontWeight: weight, fontFamily }}
+                >
+                  The quick brown fox
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="settings-muted colors-hint">
+            Adds H1-H6 and P1-P3 as real Framer Text Styles under Assets → Styles. If "{fontFamily}" isn't available, styles fall back
+            to Framer's default font.
           </p>
         </div>
       )}
