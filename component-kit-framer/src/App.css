@@ -871,6 +871,11 @@ body {
 
 .colors-scroll { flex: 1 !important; min-height: 0 !important; overflow-y: auto !important; padding-bottom: 18px; }
 
+.colors-recolor { padding: 14px 18px 4px; display: flex; flex-direction: column; gap: 8px; }
+.colors-recolor-label { font-size: 12px; font-weight: 700; color: var(--text); }
+.colors-recolor .settings-muted { font-size: 11px; line-height: 1.5; margin: 2px 0 0; }
+.colors-divider { height: 1px; background: var(--border); margin: 14px 18px 4px; }
+
 .colors-picker-row { display: flex; gap: 8px; padding: 0 18px 4px; }
 .colors-swatch-input {
   width: 44px; height: 40px; padding: 0; border: 1px solid var(--border); border-radius: 8px;

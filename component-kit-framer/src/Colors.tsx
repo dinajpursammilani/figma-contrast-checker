@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { generateScale, readableTextColor } from "./lib/color"
 import { applyColorToSelection } from "./lib/applyColor"
+import { recolorSelection } from "./lib/recolor"
 import { fetchPalettes, savePalette, deletePalette, type Palette } from "./lib/palettes"
 
 export default function Colors() {
@@ -10,6 +11,8 @@ export default function Colors() {
   const [palettes, setPalettes] = useState<Palette[] | null>(null)
   const [saveName, setSaveName] = useState("")
   const [saving, setSaving] = useState(false)
+  const [recolorTarget, setRecolorTarget] = useState("#4A5AFF")
+  const [recoloring, setRecoloring] = useState(false)
 
   const scale = generateScale(baseColor)
 
@@ -51,6 +54,18 @@ export default function Colors() {
     }
   }
 
+  async function handleRecolor() {
+    setRecoloring(true)
+    try {
+      const count = await recolorSelection(recolorTarget)
+      showToast(`Recolored ${count} layer${count === 1 ? "" : "s"}`)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Couldn't recolor")
+    } finally {
+      setRecoloring(false)
+    }
+  }
+
   async function handleSavePalette() {
     const name = saveName.trim()
     if (!name) return
@@ -84,6 +99,33 @@ export default function Colors() {
       </div>
 
       <div className="colors-scroll">
+        <div className="colors-recolor">
+          <div className="colors-recolor-label">Select a component on the canvas, pick a new color</div>
+          <div className="colors-picker-row">
+            <input
+              type="color"
+              className="colors-swatch-input"
+              value={recolorTarget}
+              onChange={(e) => setRecolorTarget(e.target.value)}
+            />
+            <input
+              className="search colors-hex-input"
+              value={recolorTarget}
+              onChange={(e) => setRecolorTarget(e.target.value)}
+              spellCheck={false}
+            />
+            <button className="boards-create-btn" onClick={handleRecolor} disabled={recoloring}>
+              {recoloring ? "…" : "Recolor"}
+            </button>
+          </div>
+          <p className="settings-muted">
+            Shifts the component's whole brand color family to this new hue — a light hover tint stays light, a dark button stays
+            dark, just repainted. Grays, black, and white are left alone.
+          </p>
+        </div>
+
+        <div className="colors-divider" />
+
         <div className="colors-picker-row">
           <input
             type="color"
