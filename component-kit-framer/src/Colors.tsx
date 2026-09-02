@@ -132,8 +132,9 @@ export default function Colors() {
             </button>
           </div>
           <p className="settings-muted">
-            Shifts the component's whole brand color family to this new hue — a light hover tint stays light, a dark button stays
-            dark, just repainted. Grays, black, and white are left alone.
+            Backgrounds shift to this new hue while keeping their own light/dark tint (a light hover stays light, a dark button stays
+            dark). Icons become exactly this color, including black or white. Text color can't be changed by any plugin — that's a
+            Framer platform limit, not something we can work around.
           </p>
         </div>
 
