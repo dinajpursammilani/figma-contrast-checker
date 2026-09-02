@@ -48,6 +48,11 @@ alter table components add column if not exists tier_manually_set boolean not nu
 -- Rendering preference everywhere: preview_image_url > preview_svg > category-icon fallback.
 alter table components add column if not exists preview_image_url text;
 
+-- Lets Edit Components show "last updated" alongside "created" — set explicitly by
+-- admin-update-component and by import-staged-components on every write, not a trigger, so it
+-- reflects "the last time this row's catalog data actually changed" specifically.
+alter table components add column if not exists updated_at timestamptz not null default now();
+
 -- Pro components' tsx_source must not be downloadable by free users just by listing the
 -- catalog. This closes that at the DB level too — the only way to get a Pro component's
 -- source is the get-component-source Edge Function, which checks profiles.is_pro with the
@@ -269,3 +274,26 @@ do $$ begin
     using (true);
 exception when duplicate_object then null;
 end $$;
+
+-- ============================================================================
+-- components_staging — a review queue between "Sync from this project" and the real, live
+-- components table. Sync used to write straight into components, which meant a sync bug (or a
+-- component mis-tagged Free/Pro) went live to every user the instant it ran, with no chance to
+-- catch it first. Now sync only writes here; an admin reviews it in Review Sync (correcting
+-- tier/category if needed) and explicitly imports rows into components one at a time or in
+-- bulk. No public access at all — every read/write goes through manage-staged-components
+-- (service role), same lockdown pattern as oauth_relay.
+-- ============================================================================
+
+create table if not exists components_staging (
+  id text primary key,
+  name text not null,
+  category text not null,
+  is_pro boolean not null default false,
+  module_url text not null,
+  synced_at timestamptz not null default now()
+);
+
+alter table components_staging enable row level security;
+-- No policies: RLS with zero policies denies all client access by default — this table is a
+-- service-role-only holding area, same as oauth_relay.

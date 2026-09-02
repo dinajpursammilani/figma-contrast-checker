@@ -16,7 +16,9 @@ import {
   type AllowedSyncProject,
 } from "./lib/syncProjects"
 import EditComponents from "./EditComponents"
+import ReviewSync from "./ReviewSync"
 import ProDrawer from "./ProDrawer"
+import { fetchStagedComponents } from "./lib/stagedComponents"
 
 type ThemePref = "light" | "dark"
 
@@ -46,6 +48,8 @@ export default function Settings({
   const [syncStatus, setSyncStatus] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [showEditComponents, setShowEditComponents] = useState(false)
+  const [showReviewSync, setShowReviewSync] = useState(false)
+  const [pendingCount, setPendingCount] = useState<number | null>(null)
   const [showDevTools, setShowDevTools] = useState(false)
   const [showSyncProjects, setShowSyncProjects] = useState(false)
   const [allowedProjects, setAllowedProjects] = useState<AllowedSyncProject[] | null>(null)
@@ -56,6 +60,15 @@ export default function Settings({
   useEffect(() => {
     getFullName(user.id).then(setFullName)
   }, [user.id])
+
+  function refreshPendingCount() {
+    if (!isAdmin) return
+    fetchStagedComponents()
+      .then((rows) => setPendingCount(rows.length))
+      .catch(() => {})
+  }
+
+  useEffect(refreshPendingCount, [isAdmin])
 
   useEffect(() => {
     getProStatus().then(setIsPro)
@@ -127,10 +140,10 @@ export default function Settings({
     try {
       const result = await syncComponentsFromCurrentProject()
       setSyncStatus(
-        `Synced ${result.synced} component${result.synced === 1 ? "" : "s"} from "${result.projectName}".` +
+        `Staged ${result.staged} component${result.staged === 1 ? "" : "s"} from "${result.projectName}" for review.` +
           (result.skipped.length ? ` Skipped: ${result.skipped.join(", ")}` : "")
       )
-      onComponentsChanged()
+      refreshPendingCount()
     } catch (err) {
       setSyncStatus(err instanceof Error ? err.message : "Sync failed")
     } finally {
@@ -182,6 +195,18 @@ export default function Settings({
           setShowEditComponents(false)
           onComponentsChanged()
         }}
+      />
+    )
+  }
+
+  if (showReviewSync) {
+    return (
+      <ReviewSync
+        onBack={() => {
+          setShowReviewSync(false)
+          refreshPendingCount()
+        }}
+        onImported={onComponentsChanged}
       />
     )
   }
@@ -321,10 +346,27 @@ export default function Settings({
             </span>
             <span className="admin-row-text">
               <span className="admin-row-title">{syncing ? "Syncing…" : "Sync from this project"}</span>
-              <span className="admin-row-sub">Reads every Component in the open Framer project</span>
+              <span className="admin-row-sub">Stages every Component here for review — nothing goes live yet</span>
             </span>
           </button>
           {syncStatus && <p className="settings-muted">{syncStatus}</p>}
+
+          <button className="admin-row" onClick={() => setShowReviewSync(true)}>
+            <span className="admin-row-icon">
+              <ImageStackIcon />
+            </span>
+            <span className="admin-row-text">
+              <span className="admin-row-title">Review Sync</span>
+              <span className="admin-row-sub">
+                {pendingCount === null
+                  ? "Check tier/category before importing"
+                  : pendingCount === 0
+                    ? "Nothing pending"
+                    : `${pendingCount} component${pendingCount === 1 ? "" : "s"} awaiting review`}
+              </span>
+            </span>
+            <span className="admin-row-chevron">›</span>
+          </button>
 
           <button className="admin-row" onClick={openSyncProjects}>
             <span className="admin-row-icon">

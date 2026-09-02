@@ -5,6 +5,20 @@ import { updateComponentFields, deleteComponentPreviewImage, resetComponentTierO
 import { categoryIconFor, TrashIcon } from "./icons"
 
 type PreviewFilter = "all" | "has" | "missing"
+type TierFilter = "all" | "free" | "pro"
+type SortMode = "order" | "recent"
+
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime()
+  const minutes = Math.round(diffMs / 60000)
+  if (minutes < 1) return "just now"
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.round(hours / 24)
+  if (days < 30) return `${days}d ago`
+  return new Date(iso).toLocaleDateString()
+}
 
 /** Admin-only catalog management: browse every component, open one to attach/replace/remove
  * its preview image and edit its name/category/tier. Reached from Settings → Admin. */
@@ -12,6 +26,8 @@ export default function EditComponents({ onBack }: { onBack: () => void }) {
   const [components, setComponents] = useState<ComponentRow[] | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
   const [filter, setFilter] = useState<PreviewFilter>("all")
+  const [tierFilter, setTierFilter] = useState<TierFilter>("all")
+  const [sortMode, setSortMode] = useState<SortMode>("order")
   const [search, setSearch] = useState("")
 
   useEffect(() => {
@@ -20,14 +36,20 @@ export default function EditComponents({ onBack }: { onBack: () => void }) {
 
   const filtered = useMemo(() => {
     if (!components) return []
-    return components.filter((c) => {
+    const rows = components.filter((c) => {
       const hasPreview = !!c.preview_image_url
       if (filter === "has" && !hasPreview) return false
       if (filter === "missing" && hasPreview) return false
+      if (tierFilter === "free" && c.is_pro) return false
+      if (tierFilter === "pro" && !c.is_pro) return false
       if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false
       return true
     })
-  }, [components, filter, search])
+    if (sortMode === "recent") {
+      return [...rows].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    }
+    return rows
+  }, [components, filter, tierFilter, sortMode, search])
 
   const open = components?.find((c) => c.id === openId) ?? null
 
@@ -75,6 +97,19 @@ export default function EditComponents({ onBack }: { onBack: () => void }) {
           </button>
         ))}
       </div>
+      <div className="edit-components-filters">
+        {(["all", "free", "pro"] as const).map((f) => (
+          <button key={f} className={`cat-btn ${tierFilter === f ? "active" : ""}`} onClick={() => setTierFilter(f)}>
+            {f === "all" ? "Any tier" : f === "free" ? "Free" : "Pro"}
+          </button>
+        ))}
+        <button
+          className={`cat-btn ${sortMode === "recent" ? "active" : ""}`}
+          onClick={() => setSortMode((m) => (m === "recent" ? "order" : "recent"))}
+        >
+          Recently updated
+        </button>
+      </div>
 
       <div className="edit-components-list">
         {!components ? (
@@ -99,7 +134,7 @@ export default function EditComponents({ onBack }: { onBack: () => void }) {
                   <span className="edit-components-name">{c.name}</span>
                   <span className="edit-components-meta">
                     {c.category} · {c.is_pro ? "Pro" : "Free"}
-                    {c.tier_manually_set && " · locked"}
+                    {c.tier_manually_set && " · locked"} · updated {relativeTime(c.updated_at)}
                   </span>
                 </div>
                 <span className="edit-components-chevron">›</span>
@@ -327,6 +362,15 @@ function ComponentEditor({
           </button>
         )}
         {status && <p className="settings-muted">{status}</p>}
+
+        <div className="settings-row" style={{ marginTop: 20 }}>
+          <span>Created</span>
+          <span className="settings-value">{new Date(component.created_at).toLocaleString()}</span>
+        </div>
+        <div className="settings-row">
+          <span>Last updated</span>
+          <span className="settings-value">{new Date(component.updated_at).toLocaleString()}</span>
+        </div>
       </div>
     </div>
   )

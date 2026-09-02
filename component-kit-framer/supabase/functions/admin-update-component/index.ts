@@ -47,6 +47,7 @@ Deno.serve(async (req) => {
       // A human explicitly setting tier/category here means future syncs should stop
       // re-deriving those fields for this component — this edit wins from now on.
       if ("category" in fields || "is_pro" in fields) fields.tier_manually_set = true
+      fields.updated_at = new Date().toISOString()
 
       const { error } = await admin.from("components").update(fields).eq("id", componentId)
       if (error) throw error

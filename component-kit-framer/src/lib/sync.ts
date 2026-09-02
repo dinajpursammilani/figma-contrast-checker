@@ -2,16 +2,12 @@ import { framer } from "@framer/plugin"
 import { supabase } from "./supabase"
 import { describeFunctionError } from "./functionError"
 
-/** Reads every real Component in the currently-open Framer project and upserts them into the
- * catalog via sync-framer-components. Meant to be run by an admin with that source project
- * open and the Skela plugin loaded there — not a user-facing feature.
- *
- * Tier and category both come from the component's own name, using Framer's "/" convention
- * directly on it — e.g. "Pro/Buttons/PrimaryButton". Deriving category from the containing
- * page instead (via getParent) was tried and live-confirmed not to work: getParent returns
- * null for every Component, since master components apparently don't live under the page tree
- * the way regular frames do. */
-export async function syncComponentsFromCurrentProject(): Promise<{ synced: number; skipped: string[]; projectId: string; projectName: string }> {
+/** Reads every real Component in the currently-open Framer project and stages them into
+ * components_staging via sync-framer-components — NOT the live catalog. An admin has to
+ * explicitly review and import from Review Sync before anything here is visible to real users;
+ * see components_staging in schema-full.sql for why. Meant to be run by an admin with the
+ * source project open and the Skela plugin loaded there — not a user-facing feature. */
+export async function syncComponentsFromCurrentProject(): Promise<{ staged: number; skipped: string[]; projectId: string; projectName: string }> {
   const project = await framer.getProjectInfo()
   const nodes = await framer.getNodesWithType("ComponentNode")
   const payload = nodes.map((n) => ({
@@ -21,7 +17,7 @@ export async function syncComponentsFromCurrentProject(): Promise<{ synced: numb
   }))
 
   const { data, error } = await supabase.functions.invoke<{
-    synced: number
+    staged: number
     skipped: string[]
     projectId: string
     projectName: string
@@ -30,7 +26,7 @@ export async function syncComponentsFromCurrentProject(): Promise<{ synced: numb
   if (error) throw new Error(await describeFunctionError(error))
   if (data?.error) throw new Error(data.error)
   return {
-    synced: data?.synced ?? 0,
+    staged: data?.staged ?? 0,
     skipped: data?.skipped ?? [],
     projectId: data?.projectId ?? project.id,
     projectName: data?.projectName ?? project.name,
