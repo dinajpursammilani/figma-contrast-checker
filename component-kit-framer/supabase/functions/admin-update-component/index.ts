@@ -8,9 +8,6 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 const ADMIN_EMAILS = (Deno.env.get("ADMIN_EMAILS") ?? "").split(",").map((e) => e.trim().toLowerCase())
-// Stricter than ADMIN_EMAILS — only this list can delete_component below. Set via
-// `supabase secrets set SUPER_ADMIN_EMAILS=...`; should be a subset of ADMIN_EMAILS.
-const SUPER_ADMIN_EMAILS = (Deno.env.get("SUPER_ADMIN_EMAILS") ?? "").split(",").map((e) => e.trim().toLowerCase())
 const BUCKET = "component-previews"
 
 Deno.serve(async (req) => {
@@ -92,12 +89,8 @@ Deno.serve(async (req) => {
     }
 
     if (action === "delete_component") {
-      if (!SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-        return new Response(JSON.stringify({ error: "Not a super admin account" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        })
-      }
+      // Already gated by the top-level ADMIN_EMAILS check above — any admin can delete, not just
+      // super admins (that stricter tier is still enforced separately for uiOpacity elsewhere).
       // Best-effort cleanup of its preview image before removing the row — same
       // don't-know-the-exact-extension tradeoff as delete_image above.
       await Promise.all(

@@ -3,6 +3,7 @@ import { fetchPricing, formatPrice, type Pricing } from "./lib/pricing"
 import { startCheckout, getProStatus } from "./lib/payments"
 import { fetchComponents, type ComponentRow } from "./lib/components"
 import { CrownIcon, CreditCardIcon, CheckIcon } from "./icons"
+import { sanitizePreviewSvg } from "./lib/sanitizeSvg"
 
 const COMPARE_ROWS: { label: string; free: string; pro: string | "check" }[] = [
   { label: "Components", free: "Free tier", pro: "Everything" },
@@ -44,7 +45,7 @@ function ProCarousel({ components }: { components: ComponentRow[] }) {
                   {c.preview_image_url ? (
                     <img src={c.preview_image_url} alt="" />
                   ) : (
-                    <div dangerouslySetInnerHTML={{ __html: c.preview_svg! }} />
+                    <div dangerouslySetInnerHTML={{ __html: sanitizePreviewSvg(c.preview_svg!) }} />
                   )}
                 </div>
                 <div className="pro-car-meta">

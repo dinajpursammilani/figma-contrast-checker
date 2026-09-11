@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { insertComponent, insertFromModuleUrl } from "./nodeBuilders"
 import { fetchComponentSource } from "./lib/componentSource"
 import { LockIcon, FolderIcon, BookmarkIcon, TrashIcon, CrownIcon, categoryIconFor } from "./icons"
 import { getProStatus } from "./lib/payments"
+import { sanitizePreviewSvg } from "./lib/sanitizeSvg"
 import {
   fetchBoards,
   fetchSavedItems,
@@ -124,11 +125,11 @@ export default function Boards() {
     }
   }
 
-  let toastTimer: ReturnType<typeof setTimeout>
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   function showToast(text: string) {
     setToast(text)
-    clearTimeout(toastTimer)
-    toastTimer = setTimeout(() => setToast(null), 1800)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(null), 1800)
   }
 
   function boardStack(items: SavedItem[]) {
@@ -157,7 +158,7 @@ export default function Boards() {
           {c.preview_image_url ? (
             <img src={c.preview_image_url} alt="" />
           ) : c.preview_svg ? (
-            <div dangerouslySetInnerHTML={{ __html: c.preview_svg }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizePreviewSvg(c.preview_svg) }} />
           ) : (
             (() => {
               const CategoryIcon = categoryIconFor(c.category)
@@ -191,7 +192,7 @@ export default function Boards() {
               <img src={item.component.preview_image_url} alt="" />
             </div>
           ) : item.component.preview_svg ? (
-            <div className="preview" dangerouslySetInnerHTML={{ __html: item.component.preview_svg }} />
+            <div className="preview" dangerouslySetInnerHTML={{ __html: sanitizePreviewSvg(item.component.preview_svg) }} />
           ) : (
             (() => {
               const CategoryIcon = categoryIconFor(item.component.category)

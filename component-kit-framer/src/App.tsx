@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import { useMakeDraggable } from "@framer/plugin"
 import { insertComponent, insertFromModuleUrl, warmInsertUrl, getCachedInsertUrl } from "./nodeBuilders"
 import { restoreSession } from "./lib/auth"
 import { fetchComponents, type ComponentRow } from "./lib/components"
 import { fetchComponentSource } from "./lib/componentSource"
+import { sanitizePreviewSvg } from "./lib/sanitizeSvg"
 import { getProStatus } from "./lib/payments"
 import { fetchAppSettings } from "./lib/appSettings"
 import { isSuperAdminEmail } from "./lib/admin"
@@ -77,8 +78,8 @@ const THEME_KEY = "theme-preference"
 type ThemePref = "light" | "dark"
 
 function useTheme() {
-  // Default to "light" — matching :root's own unqualified default — so there's nothing to
-  // flash to dark before the saved preference loads.
+  // Defaults to "dark" — the brand's primary look — for anyone with no saved preference yet.
+  // A saved preference (from the toggle below) always wins over this default.
   //
   // localStorage, not framer.setPluginData: that API is project-level storage shared between
   // every collaborator on the project (confirmed against Framer's own docs), so a personal
@@ -87,13 +88,16 @@ function useTheme() {
   const [theme, setTheme] = useState<ThemePref>(() => {
     try {
       const saved = localStorage.getItem(THEME_KEY)
-      return saved === "dark" || saved === "light" ? saved : "light"
+      return saved === "dark" || saved === "light" ? saved : "dark"
     } catch {
-      return "light"
+      return "dark"
     }
   })
 
-  useEffect(() => {
+  // useLayoutEffect, not useEffect: the default is now "dark" while :root's own unqualified CSS
+  // still defaults to light, so this has to land before the browser paints the first frame —
+  // useEffect fires after paint and would flash light first.
+  useLayoutEffect(() => {
     document.documentElement.setAttribute("data-theme", theme)
   }, [theme])
 
@@ -586,12 +590,12 @@ function Browse({
     }
   }
 
-  let toastTimer: ReturnType<typeof setTimeout>
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   function showToast(text: string) {
     setToast(text)
-    clearTimeout(toastTimer)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
     const duration = text.length > 40 ? 6000 : 1400
-    toastTimer = setTimeout(() => setToast(null), duration)
+    toastTimer.current = setTimeout(() => setToast(null), duration)
   }
 
   return (
@@ -805,7 +809,7 @@ function GalleryCard({
             <img src={component.preview_image_url} alt="" />
           </div>
         ) : component.preview_svg ? (
-          <div ref={previewRef} className="preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
+          <div ref={previewRef} className="preview" dangerouslySetInnerHTML={{ __html: sanitizePreviewSvg(component.preview_svg) }} />
         ) : (
           <div ref={previewRef} className="preview preview-fallback">
             <CategoryIcon />
@@ -896,7 +900,7 @@ function ComponentDetail({
               <img src={component.preview_image_url} alt="" />
             </div>
           ) : component.preview_svg ? (
-            <div className="bx-detail-preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
+            <div className="bx-detail-preview" dangerouslySetInnerHTML={{ __html: sanitizePreviewSvg(component.preview_svg) }} />
           ) : (
             <div className="bx-detail-preview preview-fallback">
               <CategoryIcon />

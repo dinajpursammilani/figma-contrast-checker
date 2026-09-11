@@ -202,7 +202,7 @@ export default function Settings({
     try {
       const result = await syncComponentsFromCurrentProject()
       setSyncStatus(
-        `Staged ${result.staged} component${result.staged === 1 ? "" : "s"} from "${result.projectName}" for review.` +
+        `${result.newCount} new synced, ${result.existingCount} old synced from "${result.projectName}".` +
           (result.skipped.length ? ` Skipped: ${result.skipped.join(", ")}` : "")
       )
       refreshPendingCount()
@@ -253,7 +253,7 @@ export default function Settings({
   if (showEditComponents) {
     return (
       <EditComponents
-        isSuperAdmin={isSuperAdmin}
+        isAdmin={isAdmin}
         onBack={() => {
           setShowEditComponents(false)
           onComponentsChanged()

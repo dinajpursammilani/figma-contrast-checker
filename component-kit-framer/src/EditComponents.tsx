@@ -8,6 +8,7 @@ import {
   deleteComponent,
 } from "./lib/adminComponents"
 import { categoryIconFor, TrashIcon, SearchIcon, SlidersIcon, CheckIcon } from "./icons"
+import { sanitizePreviewSvg } from "./lib/sanitizeSvg"
 
 type PreviewFilter = "all" | "has" | "missing"
 type TierFilter = "all" | "free" | "pro"
@@ -30,7 +31,7 @@ function relativeTime(iso: string): string {
 
 /** Admin-only catalog management: browse every component, open one to attach/replace/remove
  * its preview image and edit its name/category/tier. Reached from Settings → Admin. */
-export default function EditComponents({ isSuperAdmin, onBack }: { isSuperAdmin: boolean; onBack: () => void }) {
+export default function EditComponents({ isAdmin, onBack }: { isAdmin: boolean; onBack: () => void }) {
   const [components, setComponents] = useState<ComponentRow[] | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
   const [filter, setFilter] = useState<PreviewFilter>("all")
@@ -114,7 +115,7 @@ export default function EditComponents({ isSuperAdmin, onBack }: { isSuperAdmin:
     return (
       <ComponentEditor
         component={open}
-        isSuperAdmin={isSuperAdmin}
+        isAdmin={isAdmin}
         onBack={() => setOpenId(null)}
         onChange={(patch) => patchLocal(open.id, patch)}
         onDeleted={() => removeLocal(open.id)}
@@ -152,7 +153,7 @@ export default function EditComponents({ isSuperAdmin, onBack }: { isSuperAdmin:
               <SlidersIcon />
               {activeFilterCount > 0 && <span className="icon-btn-badge">{activeFilterCount}</span>}
             </button>
-            {isSuperAdmin && (
+            {isAdmin && (
               <button className="icon-btn" title="Select" onClick={() => setSelectMode(true)}>
                 <CheckIcon />
               </button>
@@ -232,7 +233,7 @@ export default function EditComponents({ isSuperAdmin, onBack }: { isSuperAdmin:
                   {c.preview_image_url ? (
                     <img src={c.preview_image_url} alt="" />
                   ) : c.preview_svg ? (
-                    <div dangerouslySetInnerHTML={{ __html: c.preview_svg }} />
+                    <div dangerouslySetInnerHTML={{ __html: sanitizePreviewSvg(c.preview_svg) }} />
                   ) : (
                     <CategoryIcon />
                   )}
@@ -286,13 +287,13 @@ export default function EditComponents({ isSuperAdmin, onBack }: { isSuperAdmin:
 
 function ComponentEditor({
   component,
-  isSuperAdmin,
+  isAdmin,
   onBack,
   onChange,
   onDeleted,
 }: {
   component: ComponentRow
-  isSuperAdmin: boolean
+  isAdmin: boolean
   onBack: () => void
   onChange: (patch: Partial<ComponentRow>) => void
   onDeleted: () => void
@@ -398,7 +399,7 @@ function ComponentEditor({
           ‹ Back
         </button>
         <span className="drawer-title">{component.name}</span>
-        {isSuperAdmin &&
+        {isAdmin &&
           (confirmingDelete ? (
             <div className="edit-components-delete-confirm">
               <button className="edit-components-confirm-btn cancel" onClick={() => setConfirmingDelete(false)} disabled={busy}>
@@ -445,7 +446,7 @@ function ComponentEditor({
           {component.preview_image_url ? (
             <img src={component.preview_image_url} alt="" />
           ) : component.preview_svg ? (
-            <div dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizePreviewSvg(component.preview_svg) }} />
           ) : (
             <CategoryIcon />
           )}

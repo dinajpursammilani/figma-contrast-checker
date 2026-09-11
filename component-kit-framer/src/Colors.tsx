@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react"
+import { framer } from "@framer/plugin"
 import { generateScale, readableTextColor, LIGHT_L, DARK_L } from "./lib/color"
 import { SunIcon, MoonIcon } from "./icons"
 import { applyColorToSelection } from "./lib/applyColor"
@@ -68,6 +69,13 @@ export default function Colors() {
   const [textFolderName, setTextFolderName] = useState("")
   const [insertingText, setInsertingText] = useState(false)
 
+  // Checked once up front so the controls themselves read as disabled — rather than looking
+  // clickable and only failing after a round trip — when this Framer workspace/plan doesn't
+  // grant the underlying capability.
+  const canEditLayers = framer.isAllowedTo("setAttributes")
+  const canCreateColorStyles = framer.isAllowedTo("createColorStyle")
+  const canCreateTextStyles = framer.isAllowedTo("createTextStyle")
+
   const darkBase = darkOverride ?? baseColor
   const lightScale = generateScale(baseColor, LIGHT_L)
   const darkScale = generateScale(darkBase, DARK_L)
@@ -90,11 +98,11 @@ export default function Colors() {
       .catch((err) => showToast(err instanceof Error ? err.message : "Couldn't load palettes"))
   }
 
-  let toastTimer: ReturnType<typeof setTimeout>
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   function showToast(text: string) {
     setToast(text)
-    clearTimeout(toastTimer)
-    toastTimer = setTimeout(() => setToast(null), 1800)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(null), 1800)
   }
 
   async function handleCopy(hex: string) {
@@ -265,7 +273,12 @@ export default function Colors() {
               <button className="colors-scale-btn" onClick={() => handleCopy(active.hex)}>
                 Copy
               </button>
-              <button className="colors-scale-btn" onClick={() => handleApply(active.hex)} disabled={applyingHex === active.hex}>
+              <button
+                className="colors-scale-btn"
+                onClick={() => handleApply(active.hex)}
+                disabled={applyingHex === active.hex || !canEditLayers}
+                title={canEditLayers ? undefined : "This Framer workspace/plan doesn't allow plugins to edit layers."}
+              >
                 {applyingHex === active.hex ? "Applying…" : "Apply →"}
               </button>
             </div>
@@ -298,7 +311,12 @@ export default function Colors() {
                 <span className="colors-insert-sub">each with a matched light + dark value</span>
               </div>
             </div>
-            <button className="colors-insert-btn" onClick={handleInsertColorStyles} disabled={insertingStyles}>
+            <button
+              className="colors-insert-btn"
+              onClick={handleInsertColorStyles}
+              disabled={insertingStyles || !canCreateColorStyles}
+              title={canCreateColorStyles ? undefined : "This Framer workspace/plan doesn't allow plugins to create styles."}
+            >
               {insertingStyles ? "Adding…" : "Insert as Color Styles →"}
             </button>
           </div>
@@ -409,7 +427,12 @@ export default function Colors() {
                 <span className="colors-insert-sub">H1–H6 and P1–P3</span>
               </div>
             </div>
-            <button className="colors-insert-btn" onClick={handleInsertTextStyles} disabled={insertingText || !textFolderName.trim()}>
+            <button
+              className="colors-insert-btn"
+              onClick={handleInsertTextStyles}
+              disabled={insertingText || !textFolderName.trim() || !canCreateTextStyles}
+              title={canCreateTextStyles ? undefined : "This Framer workspace/plan doesn't allow plugins to create styles."}
+            >
               {insertingText ? "Adding…" : "Insert Text Styles →"}
             </button>
           </div>

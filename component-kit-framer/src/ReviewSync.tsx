@@ -7,7 +7,7 @@ import {
   importStagedComponents,
   type StagedComponent,
 } from "./lib/stagedComponents"
-import { SearchIcon, SlidersIcon } from "./icons"
+import { SearchIcon, SlidersIcon, LockIcon } from "./icons"
 
 type TierFilter = "all" | "free" | "pro"
 type StatusFilter = "all" | "new" | "existing"
@@ -27,7 +27,7 @@ export default function ReviewSync({ onBack, onImported }: { onBack: () => void;
   const [confirmReject, setConfirmReject] = useState<"selected" | "all" | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const activeFilterCount = (tierFilter !== "all" ? 1 : 0) + (statusFilter !== "all" ? 1 : 0)
+  const activeFilterCount = tierFilter !== "all" ? 1 : 0
 
   function load() {
     fetchStagedComponents()
@@ -37,6 +37,18 @@ export default function ReviewSync({ onBack, onImported }: { onBack: () => void;
 
   useEffect(load, [])
 
+  const statusCounts = useMemo(() => {
+    const counts = { all: rows?.length ?? 0, new: 0, existing: 0 }
+    for (const r of rows ?? []) {
+      if (r.status === "new") counts.new++
+      else counts.existing++
+    }
+    return counts
+  }, [rows])
+
+  // Everything below (bulk import/reject "all", the empty-state message, row list) operates on
+  // this — not on `rows` directly — so "all" genuinely means "everything in the active tab",
+  // not "everything, including rows hidden by whatever tab/filter is currently applied".
   const filtered = useMemo(() => {
     if (!rows) return []
     return rows.filter((r) => {
@@ -47,6 +59,12 @@ export default function ReviewSync({ onBack, onImported }: { onBack: () => void;
       return true
     })
   }, [rows, tierFilter, statusFilter, search])
+
+  function switchStatusTab(next: StatusFilter) {
+    setStatusFilter(next)
+    setSelected(new Set())
+    setConfirmReject(null)
+  }
 
   function toggleSelected(id: string) {
     setSelected((prev) => {
@@ -147,6 +165,14 @@ export default function ReviewSync({ onBack, onImported }: { onBack: () => void;
         </button>
       </div>
 
+      <div className="section-tabs" style={{ padding: "12px 18px 0" }}>
+        {(["all", "new", "existing"] as const).map((tab) => (
+          <button key={tab} className={`section-tab ${statusFilter === tab ? "active" : ""}`} onClick={() => switchStatusTab(tab)}>
+            {tab === "all" ? "All" : tab === "new" ? "New" : "Existing"} ({statusCounts[tab]})
+          </button>
+        ))}
+      </div>
+
       {searchOpen && (
         <input
           className="search"
@@ -170,14 +196,6 @@ export default function ReviewSync({ onBack, onImported }: { onBack: () => void;
                 </button>
               ))}
             </div>
-            <div className="filter-dropdown-label">Status</div>
-            <div className="filter-dropdown-chips">
-              {(["all", "new", "existing"] as const).map((f) => (
-                <button key={f} className={`cat-btn ${statusFilter === f ? "active" : ""}`} onClick={() => setStatusFilter(f)}>
-                  {f === "all" ? "All" : f === "new" ? "New" : "Existing"}
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       )}
@@ -198,12 +216,16 @@ export default function ReviewSync({ onBack, onImported }: { onBack: () => void;
               />
               <div className="edit-components-info">
                 <span className="edit-components-name">{r.name}</span>
-                <span className="edit-components-meta">
-                  {r.category}
-                  {r.status === "existing" && r.locked && " · will keep locked tier/category live"}
-                </span>
+                <span className="edit-components-meta">{r.category}</span>
               </div>
-              <span className={`review-sync-status ${r.status}`}>{r.status === "new" ? "NEW" : "EXISTING"}</span>
+              {r.status === "existing" && r.locked && (
+                <span className="review-sync-lock" title="Locked in Edit Components — tier/category stay as-is on import">
+                  <LockIcon />
+                </span>
+              )}
+              {statusFilter === "all" && (
+                <span className={`review-sync-status ${r.status}`}>{r.status === "new" ? "NEW" : "EXISTING"}</span>
+              )}
               <button
                 className={`review-sync-tier ${r.is_pro ? "pro" : "free"}`}
                 onClick={() => handleToggleTier(r)}
@@ -220,47 +242,52 @@ export default function ReviewSync({ onBack, onImported }: { onBack: () => void;
         )}
       </div>
 
-      {rows && rows.length > 0 && (
-        <div className="review-sync-actions">
-          <button
-            className="settings-toggle"
-            onClick={() => handleImport(Array.from(selected))}
-            disabled={busy || selected.size === 0}
-          >
-            {busy ? "Importing…" : `Import selected (${selected.size})`}
-          </button>
-          <button className="settings-upgrade-btn" onClick={() => handleImport("all")} disabled={busy}>
-            {busy ? "Importing…" : `Import all (${rows.length})`}
-          </button>
-        </div>
-      )}
-
-      {rows && rows.length > 0 && (
+      {/* One adaptive bar, not four static buttons: it shows exactly the two actions relevant
+          to your current state — "all" while nothing's checked, "selected" the moment you check
+          something — instead of always showing all four with half of them disabled at "(0)". */}
+      {filtered.length > 0 && (
         <div className="review-sync-actions">
           {confirmReject ? (
-            <div className="edit-components-delete-confirm" style={{ flex: 1, justifyContent: "flex-end" }}>
+            <div className="review-sync-confirm-row">
+              <span className="review-sync-confirm-label">
+                {confirmReject === "all" ? `Reject all ${filtered.length}?` : `Reject ${selected.size} selected?`}
+              </span>
               <button className="edit-components-confirm-btn cancel" onClick={() => setConfirmReject(null)} disabled={busy}>
                 Cancel
               </button>
               <button
                 className="edit-components-confirm-btn danger"
-                onClick={() => handleReject(confirmReject === "all" ? "all" : Array.from(selected))}
+                onClick={() => handleReject(confirmReject === "all" ? filtered.map((r) => r.id) : Array.from(selected))}
                 disabled={busy}
               >
-                {busy ? "Rejecting…" : confirmReject === "all" ? `Confirm reject all (${rows.length})` : `Confirm reject (${selected.size})`}
+                {busy ? "Rejecting…" : "Confirm"}
               </button>
             </div>
+          ) : selected.size > 0 ? (
+            <>
+              <span className="review-sync-selected-count">{selected.size} selected</span>
+              <button className="review-sync-reject-btn" onClick={() => setConfirmReject("selected")} disabled={busy}>
+                Reject
+              </button>
+              <button
+                className="review-sync-import-btn"
+                onClick={() => handleImport(Array.from(selected))}
+                disabled={busy}
+              >
+                {busy ? "Importing…" : "Import"}
+              </button>
+            </>
           ) : (
             <>
-              <button
-                className="settings-toggle"
-                onClick={() => setConfirmReject("selected")}
-                disabled={busy || selected.size === 0}
-              >
-                {`Reject selected (${selected.size})`}
+              <button className="review-sync-reject-link" onClick={() => setConfirmReject("all")} disabled={busy}>
+                Reject all
               </button>
-              <button className="settings-toggle danger" onClick={() => setConfirmReject("all")} disabled={busy}>
-                {`Reject all (${rows.length})`}
+              <button
+                className="review-sync-import-btn"
+                onClick={() => handleImport(filtered.map((r) => r.id))}
+                disabled={busy}
+              >
+                {busy ? "Importing…" : `Import all (${filtered.length})`}
               </button>
             </>
           )}
