@@ -83,6 +83,6 @@ export async function fetchMembership(componentId: string): Promise<{ id: string
     .select("id, board_id")
     .eq("component_id", componentId)
 
-  if (error) return []
+  if (error) throw new Error(`Failed to load saved state: ${error.message}`)
   return data ?? []
 }

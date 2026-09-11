@@ -45,11 +45,17 @@ export default function EditComponents({ isAdmin, onBack }: { isAdmin: boolean; 
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [bulkStatus, setBulkStatus] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const activeFilterCount = (filter !== "all" ? 1 : 0) + (tierFilter !== "all" ? 1 : 0) + (sortMode === "recent" ? 1 : 0)
 
-  useEffect(() => {
-    fetchComponents().then(setComponents)
-  }, [])
+  function load() {
+    setLoadError(null)
+    fetchComponents()
+      .then(setComponents)
+      .catch((err) => setLoadError(err instanceof Error ? err.message : "Couldn't load components"))
+  }
+
+  useEffect(load, [])
 
   const filtered = useMemo(() => {
     if (!components) return []
@@ -207,7 +213,14 @@ export default function EditComponents({ isAdmin, onBack }: { isAdmin: boolean; 
       )}
 
       <div className="edit-components-list">
-        {!components ? (
+        {loadError ? (
+          <p className="settings-muted">
+            {loadError}{" "}
+            <button className="settings-link" onClick={load} style={{ display: "inline" }}>
+              Retry
+            </button>
+          </p>
+        ) : !components ? (
           <p className="settings-muted">Loading…</p>
         ) : filtered.length === 0 ? (
           <p className="settings-muted">No components match.</p>

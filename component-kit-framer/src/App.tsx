@@ -132,6 +132,9 @@ export default function App() {
           setNeedsOnboarding(!done)
         }
       })
+      // Falls back to the already-correct "no session" state (Login screen) either way — this
+      // just stops a transient failure here from becoming an unhandled rejection.
+      .catch(() => setUser(null))
       .finally(() => setCheckingSession(false))
   }, [])
 
@@ -141,6 +144,11 @@ export default function App() {
     try {
       const done = await getOnboardingStatus(loggedInUser.id)
       setNeedsOnboarding(!done)
+    } catch {
+      // Unknown onboarding status — default to showing it. Worse case is a returning user sees
+      // it again after a network blip; the alternative (silently skipping a real first-timer's
+      // onboarding) is worse and was the actual gap here.
+      setNeedsOnboarding(true)
     } finally {
       setCheckingOnboarding(false)
     }

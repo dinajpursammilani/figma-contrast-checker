@@ -45,6 +45,9 @@ export default function OAuthCallback() {
         // close it and switch back themselves — same as they already do for Polar checkout.
         window.close()
       })
+      // Without this, a network failure here (not just a returned {error}) leaves this tab
+      // stuck on "Signing you in…" forever with no way to tell the user rescued anything.
+      .catch(() => setStatus("error"))
   }, [])
 
   return (
