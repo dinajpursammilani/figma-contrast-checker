@@ -53,6 +53,12 @@ alter table components add column if not exists preview_image_url text;
 -- reflects "the last time this row's catalog data actually changed" specifically.
 alter table components add column if not exists updated_at timestamptz not null default now();
 
+-- Part/Panel/Page placement for Home/Build's top-level grouping — deliberately a separate
+-- column from the existing "tier" concept above (tier_manually_set/is_pro means Free vs Pro).
+-- Admin-only, set from Edit Components; never derived or touched by sync. Null means
+-- uncategorized — such rows show only in the "All" bucket until an admin assigns one.
+alter table components add column if not exists section text;
+
 -- Pro components' tsx_source must not be downloadable by free users just by listing the
 -- catalog. This closes that at the DB level too — the only way to get a Pro component's
 -- source is the get-component-source Edge Function, which checks profiles.is_pro with the
@@ -276,6 +282,38 @@ exception when duplicate_object then null;
 end $$;
 
 -- ============================================================================
+-- app_settings — single-row global config, same public-read / admin-write shape as pricing.
+-- pro_available: Settings → Admin toggle. Off = every Pro upsell surface (Home promo, Settings
+-- upgrade row, locked Pro cards) shows "Coming soon" instead of the real checkout flow, for the
+-- launch window before any Pro components actually exist yet.
+-- ui_opacity: Settings → Super Admin only, a 0–1 slider. Applied to the whole app's root opacity
+-- for everyone except a Super Admin account, who always renders at full opacity regardless of
+-- this value. Writes to ui_opacity are gated to SUPER_ADMIN_EMAILS specifically (stricter than
+-- ADMIN_EMAILS) inside admin-update-app-settings — pro_available stays ADMIN_EMAILS-gated.
+-- ============================================================================
+
+create table if not exists app_settings (
+  id text primary key,
+  pro_available boolean not null default true,
+  ui_opacity numeric not null default 1 check (ui_opacity >= 0 and ui_opacity <= 1),
+  updated_at timestamptz not null default now()
+);
+
+insert into app_settings (id, pro_available, ui_opacity)
+values ('global', true, 1)
+on conflict (id) do nothing;
+
+alter table app_settings enable row level security;
+
+do $$ begin
+  create policy "Anyone can read app_settings"
+    on app_settings for select
+    to authenticated
+    using (true);
+exception when duplicate_object then null;
+end $$;
+
+-- ============================================================================
 -- components_staging — a review queue between "Sync from this project" and the real, live
 -- components table. Sync used to write straight into components, which meant a sync bug (or a
 -- component mis-tagged Free/Pro) went live to every user the instant it ran, with no chance to
@@ -297,3 +335,30 @@ create table if not exists components_staging (
 alter table components_staging enable row level security;
 -- No policies: RLS with zero policies denies all client access by default — this table is a
 -- service-role-only holding area, same as oauth_relay.
+
+-- ============================================================================
+-- feedback_submissions — in-app "Send feedback" / "Report a bug" forms (Settings/Home →
+-- Feedback), replacing the old mailto: links. A user can insert their own rows but never read
+-- or list them back (no select policy) — this is a one-way mailbox, not a support inbox they
+-- browse. Admins review submissions directly in the Supabase dashboard for now; build an
+-- in-plugin review screen later if that stops being enough.
+-- ============================================================================
+
+create table if not exists feedback_submissions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  user_email text,
+  type text not null check (type in ('feedback', 'bug')),
+  message text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table feedback_submissions enable row level security;
+
+do $$ begin
+  create policy "Users can submit their own feedback"
+    on feedback_submissions for insert
+    to authenticated
+    with check (auth.uid() = user_id);
+exception when duplicate_object then null;
+end $$;

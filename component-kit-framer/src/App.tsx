@@ -6,8 +6,11 @@ import { restoreSession } from "./lib/auth"
 import { fetchComponents, type ComponentRow } from "./lib/components"
 import { fetchComponentSource } from "./lib/componentSource"
 import { getProStatus } from "./lib/payments"
+import { fetchAppSettings } from "./lib/appSettings"
+import { isSuperAdminEmail } from "./lib/admin"
 import ProDrawer from "./ProDrawer"
-import { SUPPORT_EMAIL } from "./lib/support"
+import FeedbackForm from "./FeedbackForm"
+import type { FeedbackType } from "./lib/feedback"
 import { getOnboardingStatus, getFullName, friendlyNameFromEmail } from "./lib/profile"
 import Login from "./Login"
 import Onboarding from "./Onboarding"
@@ -27,10 +30,35 @@ import {
   SparkleIcon,
   MessageIcon,
   BugIcon,
-  CloseIcon,
-  GridIcon,
+  HomeGridIcon,
+  CrownIcon,
+  CheckIcon,
+  ChevronDownIcon,
   categoryIconFor,
+  sectionIconFor,
 } from "./icons"
+
+type Section = "part" | "panel" | "page"
+const SECTIONS: Section[] = ["part", "panel", "page"]
+const SECTION_LABELS: Record<Section, string> = { part: "Parts", panel: "Panels", page: "Pages" }
+// A distinct accent hue per section on Home's tiles — purely a visual differentiator between
+// the three tiles, unrelated to --accent (interactive) or --pro (locked) meanings elsewhere.
+const SECTION_BADGE_STYLE: Record<Section, { background: string; color: string }> = {
+  part: { background: "hsl(235 70% 65% / 18%)", color: "hsl(235 80% 78%)" },
+  panel: { background: "hsl(265 70% 65% / 18%)", color: "hsl(265 80% 80%)" },
+  page: { background: "hsl(35 85% 60% / 18%)", color: "hsl(35 90% 72%)" },
+}
+
+// Home's card decorations are fixed generic wireframe line-art, not derived from any real
+// component's own preview_svg — exact port of the mockup's per-card BP.* SVGs, so every card
+// always shows a decoration regardless of whether real catalog data has preview art yet.
+const HOME_BLUEPRINTS: Record<"hero" | Section | "promo", string> = {
+  hero: `<svg viewBox="0 0 100 74" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="34" height="34" rx="4"/><circle cx="66" cy="16" r="12"/><rect x="4" y="46" width="60" height="6" rx="3"/><rect x="4" y="58" width="40" height="6" rx="3"/><path d="M78 46h18v18H78Z"/></svg>`,
+  part: `<svg viewBox="0 0 100 74" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="8" width="38" height="26" rx="3"/><rect x="52" y="8" width="42" height="14" rx="3"/><rect x="52" y="28" width="42" height="6" rx="3"/><rect x="6" y="44" width="88" height="24" rx="3"/></svg>`,
+  panel: `<svg viewBox="0 0 90 70" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="82" height="20" rx="3"/><rect x="4" y="30" width="82" height="12" rx="3"/><rect x="4" y="48" width="50" height="12" rx="3"/></svg>`,
+  page: `<svg viewBox="0 0 90 70" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="82" height="62" rx="6"/><path d="M20 50V20M20 20l-6 6M20 20l6 6" /><rect x="40" y="18" width="34" height="6" rx="3"/><rect x="40" y="30" width="24" height="6" rx="3"/></svg>`,
+  promo: `<svg viewBox="0 0 100 74" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="60" height="14" rx="3"/><rect x="4" y="24" width="40" height="6" rx="3"/><circle cx="80" cy="40" r="16"/></svg>`,
+}
 
 function DragHandleIcon() {
   return (
@@ -150,11 +178,24 @@ function Shell({
 }) {
   const [view, setView] = useState<"home" | "build" | "boards" | "colors" | "settings">("home")
   const [buildCategory, setBuildCategory] = useState<string | null>(null)
+  const [buildSection, setBuildSection] = useState<Section | null>(null)
 
   const [components, setComponents] = useState<ComponentRow[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [warmedFiles, setWarmedFiles] = useState<Set<string>>(new Set())
   const [isPro, setIsPro] = useState<boolean | null>(null)
+  const [proAvailable, setProAvailable] = useState<boolean | null>(null)
+  const [uiOpacity, setUiOpacity] = useState(1)
+  const isSuperAdmin = isSuperAdminEmail(user.email)
+
+  useEffect(() => {
+    fetchAppSettings()
+      .then((s) => {
+        setProAvailable(s.proAvailable)
+        setUiOpacity(s.uiOpacity)
+      })
+      .catch(() => setProAvailable(true))
+  }, [])
 
   useEffect(() => {
     getProStatus().then(setIsPro)
@@ -203,22 +244,62 @@ function Shell({
     })
   }, [components, isPro])
 
-  function openBuild(category: string | null) {
+  function openBuild(category: string | null = null, section: Section | null = null) {
     setBuildCategory(category)
+    setBuildSection(section)
     setView("build")
   }
 
+  // Spells S-K-E-L-A across the nav, left to right — Home/Build/Boards/Colors/Settings.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const active = document.activeElement
+      const tag = (active?.tagName ?? "").toLowerCase()
+      if (tag === "input" || tag === "textarea" || (active instanceof HTMLElement && active.isContentEditable)) return
+      switch (e.key.toLowerCase()) {
+        case "s":
+          setView("home")
+          break
+        case "k":
+          openBuild()
+          break
+        case "e":
+          setView("boards")
+          break
+        case "l":
+          setView("colors")
+          break
+        case "a":
+          setView("settings")
+          break
+      }
+    }
+    document.addEventListener("keydown", onKeyDown)
+    return () => document.removeEventListener("keydown", onKeyDown)
+  }, [])
+
   return (
-    <div className="shell">
+    <div className="shell" style={{ opacity: isSuperAdmin ? 1 : uiOpacity }}>
       <div className="shell-content">
-        {view === "home" && <Home user={user} components={components} isPro={isPro} onOpenCategory={openBuild} />}
+        {view === "home" && (
+          <Home
+            user={user}
+            components={components}
+            isPro={isPro}
+            proAvailable={proAvailable}
+            onOpenAll={() => openBuild()}
+            onOpenSection={(section) => openBuild(null, section)}
+          />
+        )}
         {view === "build" && (
           <Browse
             components={components}
             loadError={loadError}
             isPro={isPro}
+            proAvailable={proAvailable}
             warmedFiles={warmedFiles}
             initialCategory={buildCategory}
+            initialSection={buildSection}
           />
         )}
         {view === "boards" && <Boards />}
@@ -230,27 +311,37 @@ function Shell({
             onToggleTheme={onToggleTheme}
             onLogOut={onLogOut}
             onComponentsChanged={refetchComponents}
+            proAvailable={proAvailable}
+            onProAvailableChanged={setProAvailable}
+            isSuperAdmin={isSuperAdmin}
+            uiOpacity={uiOpacity}
+            onUiOpacityChanged={setUiOpacity}
           />
         )}
       </div>
       <div className="bottom-nav">
         <button className={`nav-btn ${view === "home" ? "active" : ""}`} onClick={() => setView("home")}>
+          <span className="nav-key-hint">S</span>
           <HomeIcon />
           <span>Home</span>
         </button>
-        <button className={`nav-btn ${view === "build" ? "active" : ""}`} onClick={() => openBuild(null)}>
+        <button className={`nav-btn ${view === "build" ? "active" : ""}`} onClick={() => openBuild()}>
+          <span className="nav-key-hint">K</span>
           <LayersIcon />
           <span>Build</span>
         </button>
         <button className={`nav-btn ${view === "boards" ? "active" : ""}`} onClick={() => setView("boards")}>
+          <span className="nav-key-hint">E</span>
           <BookmarkIcon />
           <span>Boards</span>
         </button>
         <button className={`nav-btn ${view === "colors" ? "active" : ""}`} onClick={() => setView("colors")}>
+          <span className="nav-key-hint">L</span>
           <PaletteIcon />
           <span>Colors</span>
         </button>
         <button className={`nav-btn ${view === "settings" ? "active" : ""}`} onClick={() => setView("settings")}>
+          <span className="nav-key-hint">A</span>
           <SettingsIcon />
           {isPro && <span className="nav-pro-dot" />}
           <span>Settings</span>
@@ -264,14 +355,19 @@ function Home({
   user,
   components,
   isPro,
-  onOpenCategory,
+  proAvailable,
+  onOpenAll,
+  onOpenSection,
 }: {
   user: User
   components: ComponentRow[] | null
   isPro: boolean | null
-  onOpenCategory: (category: string | null) => void
+  proAvailable: boolean | null
+  onOpenAll: () => void
+  onOpenSection: (section: Section) => void
 }) {
   const [showProDrawer, setShowProDrawer] = useState(false)
+  const [showFeedback, setShowFeedback] = useState<FeedbackType | null>(null)
 
   const [greetingName, setGreetingName] = useState<string>(user.email ? friendlyNameFromEmail(user.email) : "there")
 
@@ -281,20 +377,17 @@ function Home({
     })
   }, [user.id])
 
-  const categoryCounts = useMemo(() => {
+  const sectionCounts = useMemo(() => {
     if (!components) return []
-    const counts = new Map<string, number>()
-    for (const c of components) counts.set(c.category, (counts.get(c.category) ?? 0) + 1)
-    return Array.from(counts.entries())
+    const counts = new Map<Section, number>()
+    for (const c of components) {
+      if (c.section) counts.set(c.section, (counts.get(c.section) ?? 0) + 1)
+    }
+    return SECTIONS.map((s) => [s, counts.get(s) ?? 0] as const)
   }, [components])
 
-  // A real sample preview per tile, oversized/rotated/faded as a "blueprint" decoration —
-  // ties the tile's visual interest to our actual content instead of a generic graphic. Only
-  // hand-drawn previews (preview_svg) work here — module_url components synced from Framer
-  // don't have one, so they're skipped for this purely decorative purpose.
-  const heroSample = components?.find((c) => c.preview_svg)
-  function sampleFor(category: string) {
-    return components?.find((c) => c.category === category && c.preview_svg)
+  if (showFeedback) {
+    return <FeedbackForm user={user} type={showFeedback} onBack={() => setShowFeedback(null)} />
   }
 
   return (
@@ -313,81 +406,68 @@ function Home({
         </div>
 
         <div className="tiles">
-          <button className="tile tile-hero" onClick={() => onOpenCategory(null)}>
-            {heroSample && (
-              <div className="blueprint blueprint-hero" dangerouslySetInnerHTML={{ __html: heroSample.preview_svg! }} />
-            )}
+          <button className="tile tile-hero b6" onClick={onOpenAll}>
+            <div className="blueprint" dangerouslySetInnerHTML={{ __html: HOME_BLUEPRINTS.hero }} />
             <div className="tile-badge">
-              <GridIcon />
+              <HomeGridIcon />
             </div>
-            <div className="tile-text">
-              <div className="tile-name">Browse all</div>
-              <div className="tile-count">{components ? `${components.length} components` : "…"}</div>
-            </div>
+            <svg className="tile-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 17 17 7M9 7h8v8" />
+            </svg>
+            <div className="tile-name">Browse all</div>
+            <div className="tile-count">{components ? `${components.length} components` : "…"}</div>
           </button>
 
-          <div className="tiles-row">
-            {categoryCounts.map(([category, count]) => {
-              const CategoryIcon = categoryIconFor(category)
-              const sample = sampleFor(category)
-              return (
-                <button key={category} className="tile tile-small" onClick={() => onOpenCategory(category)}>
-                  {sample && (
-                    <div className="blueprint blueprint-small" dangerouslySetInnerHTML={{ __html: sample.preview_svg! }} />
-                  )}
-                  <div className="tile-badge">
-                    <CategoryIcon />
-                  </div>
-                  <div className="tile-text">
-                    <div className="tile-name">{category}</div>
-                    <div className="tile-count">{count} components</div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-
-          {isPro === false && (
-            <div className="promo">
-              {(components?.find((c) => c.is_pro && c.preview_svg) ?? heroSample) && (
-                <div
-                  className="blueprint blueprint-promo"
-                  dangerouslySetInnerHTML={{
-                    __html: (components?.find((c) => c.is_pro && c.preview_svg) ?? heroSample)!.preview_svg!,
-                  }}
-                />
-              )}
-              <h3>Unlock every component</h3>
-              <p>Pro components, saved boards, and the color tool — all in one plan.</p>
-              <button className="promo-btn" onClick={() => setShowProDrawer(true)}>
-                Upgrade to Pro
+          {sectionCounts.map(([section, count]) => {
+            const SectionIcon = sectionIconFor(section)
+            return (
+              <button key={section} className="tile tile-small b2" onClick={() => onOpenSection(section)}>
+                <div className="blueprint" dangerouslySetInnerHTML={{ __html: HOME_BLUEPRINTS[section] }} />
+                <div className="tile-badge" style={SECTION_BADGE_STYLE[section]}>
+                  <SectionIcon />
+                </div>
+                <div className="tile-text">
+                  <div className="tile-name">{SECTION_LABELS[section]}</div>
+                  <div className="tile-count">{count} components</div>
+                </div>
               </button>
-            </div>
-          )}
+            )
+          })}
+        </div>
 
-          {showProDrawer && <ProDrawer onClose={() => setShowProDrawer(false)} />}
-
-          <div className="home-section-label">Feedback</div>
-          {SUPPORT_EMAIL ? (
-            <>
-              <a className="home-feedback-row" href={`mailto:${SUPPORT_EMAIL}?subject=Skela feedback`}>
-                <div className="home-feedback-icon">
-                  <MessageIcon />
-                </div>
-                <span>Send feedback</span>
-              </a>
-              <a className="home-feedback-row" href={`mailto:${SUPPORT_EMAIL}?subject=Skela bug report`}>
-                <div className="home-feedback-icon">
-                  <BugIcon />
-                </div>
-                <span>Report a bug</span>
-              </a>
-            </>
-          ) : (
-            <p className="settings-muted" style={{ padding: "0 2px" }}>
-              Support contact not set up yet.
+        {isPro === false && (
+          <div className="promo">
+            <div className="blueprint" dangerouslySetInnerHTML={{ __html: HOME_BLUEPRINTS.promo }} />
+            <span className="promo-badge">
+              <span>{proAvailable === false ? "SOON" : "PRO"}</span>
+            </span>
+            <h3>{proAvailable === false ? "Pro is coming soon" : "Unlock every component"}</h3>
+            <p>
+              {proAvailable === false
+                ? "We're building out the Pro component library — check back soon."
+                : "Pro components, saved boards, and the color tool — all in one plan."}
             </p>
-          )}
+            <button className="promo-btn" onClick={() => setShowProDrawer(true)}>
+              {proAvailable === false ? "Coming soon" : "Upgrade to Pro"}
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {showProDrawer && <ProDrawer proAvailable={proAvailable} onClose={() => setShowProDrawer(false)} />}
+
+        <div className="home-section-label">Feedback</div>
+        <div className="home-feedback-row">
+          <button className="home-feedback-btn" onClick={() => setShowFeedback("feedback")}>
+            <MessageIcon />
+            Send feedback
+          </button>
+          <button className="home-feedback-btn" onClick={() => setShowFeedback("bug")}>
+            <BugIcon />
+            Report a bug
+          </button>
         </div>
       </div>
     </div>
@@ -398,27 +478,34 @@ function Browse({
   components,
   loadError,
   isPro,
+  proAvailable,
   warmedFiles,
   initialCategory,
+  initialSection,
 }: {
   components: ComponentRow[] | null
   loadError: string | null
   isPro: boolean | null
+  proAvailable: boolean | null
   warmedFiles: Set<string>
   initialCategory: string | null
+  initialSection: Section | null
 }) {
   const allCategories = useMemo(
     () => (components ? Array.from(new Set(components.map((c) => c.category))) : []),
     [components]
   )
 
+  const [selectedSection, setSelectedSection] = useState<Section | null>(initialSection)
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
     new Set(initialCategory ? [initialCategory] : allCategories)
   )
   const [selectedAccess, setSelectedAccess] = useState<Set<"free" | "pro">>(new Set(["free", "pro"]))
+  const [sortRecent, setSortRecent] = useState(false)
   const activeFilterCount =
-    (selectedCategories.size < allCategories.length ? 1 : 0) + (selectedAccess.size < 2 ? 1 : 0)
-  const [openFilter, setOpenFilter] = useState<"category" | "access" | null>(null)
+    (selectedCategories.size < allCategories.length ? 1 : 0) + (selectedAccess.size < 2 ? 1 : 0) + (sortRecent ? 1 : 0)
+  const [openFilterGroup, setOpenFilterGroup] = useState<"category" | "access" | "sort" | null>(null)
+  const [categorySearch, setCategorySearch] = useState("")
   const [searchOpen, setSearchOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
@@ -445,6 +532,10 @@ function Browse({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCategory])
 
+  useEffect(() => {
+    setSelectedSection(initialSection)
+  }, [initialSection])
+
   function toggleCategory(category: string) {
     setSelectedCategories((prev) => {
       const next = new Set(prev)
@@ -464,13 +555,16 @@ function Browse({
   const items = useMemo(() => {
     if (!components) return []
     const term = searchTerm.toLowerCase()
-    return components.filter((c) => {
+    const filtered = components.filter((c) => {
+      const matchesSection = selectedSection === null || c.section === selectedSection
       const matchesCat = selectedCategories.size === 0 || selectedCategories.has(c.category)
       const matchesAccess = selectedAccess.has(c.is_pro ? "pro" : "free")
       const matchesSearch = c.name.toLowerCase().includes(term)
-      return matchesCat && matchesAccess && matchesSearch
+      return matchesSection && matchesCat && matchesAccess && matchesSearch
     })
-  }, [components, selectedCategories, selectedAccess, searchTerm])
+    if (!sortRecent) return filtered
+    return [...filtered].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  }, [components, selectedSection, selectedCategories, selectedAccess, searchTerm, sortRecent])
 
   async function handleInsert(component: ComponentRow) {
     setBusyId(component.id)
@@ -503,91 +597,115 @@ function Browse({
   return (
     <div className="app">
       <div className="browse-header">
-        <div className={`search-inline-wrap ${searchOpen ? "open" : ""}`}>
+        <div className="section-tabs">
+          <button className={`section-tab ${selectedSection === null ? "active" : ""}`} onClick={() => setSelectedSection(null)}>
+            All
+          </button>
+          {SECTIONS.map((s) => (
+            <button key={s} className={`section-tab ${selectedSection === s ? "active" : ""}`} onClick={() => setSelectedSection(s)}>
+              {SECTION_LABELS[s]}
+            </button>
+          ))}
+        </div>
+        <div className="browse-header-actions">
+          <button
+            className={`icon-btn ${filtersOpen ? "active" : ""} ${activeFilterCount > 0 ? "has-filters" : ""}`}
+            title="Filter"
+            onClick={() => {
+              setFiltersOpen((v) => !v)
+              setSearchOpen(false)
+            }}
+          >
+            <SlidersIcon />
+          </button>
+          <button
+            className={`icon-btn ${searchOpen ? "active" : ""}`}
+            title="Search"
+            onClick={() => (searchOpen ? closeSearch() : (setSearchOpen(true), setFiltersOpen(false)))}
+          >
+            <SearchIcon />
+          </button>
+        </div>
+      </div>
+
+      {searchOpen && (
+        <div className="bx-search-row">
           <input
             ref={searchInputRef}
-            className="search-inline-input"
             placeholder="Search components…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === "Escape" && closeSearch()}
           />
         </div>
-        {!searchOpen && (
-          <span className="browse-title">
-            {selectedCategories.size === 1 ? Array.from(selectedCategories)[0] : "All components"}
-          </span>
-        )}
-        {!searchOpen && <span className="browse-header-spacer" />}
-        <button
-          className={`icon-btn ${searchOpen ? "active" : ""}`}
-          title="Search"
-          onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
-        >
-          {searchOpen ? <CloseIcon /> : <SearchIcon />}
-        </button>
-        <button
-          className={`icon-btn ${filtersOpen || activeFilterCount > 0 ? "active" : ""}`}
-          title="Filter"
-          onClick={() => {
-            setFiltersOpen((v) => !v)
-            setOpenFilter(null)
-          }}
-        >
-          <SlidersIcon />
-          {activeFilterCount > 0 && <span className="icon-btn-badge">{activeFilterCount}</span>}
-        </button>
-      </div>
+      )}
 
       {filtersOpen && (
-        <div className="filter-row-wrap">
-          <div className="filter-row">
-            <button
-              className={`filter-chip ${selectedCategories.size < allCategories.length ? "active" : ""}`}
-              onClick={() => setOpenFilter(openFilter === "category" ? null : "category")}
-            >
-              Category
-              {selectedCategories.size < allCategories.length && (
-                <span className="filter-chip-count">{selectedCategories.size}</span>
-              )}
-            </button>
-            <button
-              className={`filter-chip ${selectedAccess.size < 2 ? "active" : ""}`}
-              onClick={() => setOpenFilter(openFilter === "access" ? null : "access")}
-            >
-              Access
-              {selectedAccess.size < 2 && <span className="filter-chip-count">{selectedAccess.size}</span>}
-            </button>
-          </div>
+        <div className="bx-filter-wrap">
+          <button
+            className={`bx-filter-chip ${selectedCategories.size < allCategories.length ? "active" : ""}`}
+            onClick={() => setOpenFilterGroup(openFilterGroup === "category" ? null : "category")}
+          >
+            Categories <ChevronDownIcon />
+          </button>
+          <button
+            className={`bx-filter-chip ${selectedAccess.size < 2 ? "active" : ""}`}
+            onClick={() => setOpenFilterGroup(openFilterGroup === "access" ? null : "access")}
+          >
+            Access <ChevronDownIcon />
+          </button>
+          <button
+            className={`bx-filter-chip ${sortRecent ? "active" : ""}`}
+            onClick={() => setOpenFilterGroup(openFilterGroup === "sort" ? null : "sort")}
+          >
+            Sort <ChevronDownIcon />
+          </button>
+        </div>
+      )}
 
-          {openFilter && (
-            <>
-              <div className="filter-dropdown-backdrop" onClick={() => setOpenFilter(null)} />
-              <div className="filter-dropdown">
-                {openFilter === "category"
-                  ? allCategories.map((cat) => (
-                      <label key={cat} className="filter-option">
-                        <input
-                          type="checkbox"
-                          checked={selectedCategories.has(cat)}
-                          onChange={() => toggleCategory(cat)}
-                        />
-                        {cat}
+      {filtersOpen && openFilterGroup && (
+        <div className="filter-row-wrap">
+          <div className="filter-dropdown-backdrop" onClick={() => setOpenFilterGroup(null)} />
+          <div className="filter-dropdown">
+            {openFilterGroup === "category" && (
+              <>
+                <input
+                  className="bx-dropdown-search"
+                  placeholder="Search categories…"
+                  value={categorySearch}
+                  onChange={(e) => setCategorySearch(e.target.value)}
+                />
+                {allCategories
+                  .filter((cat) => cat.toLowerCase().includes(categorySearch.toLowerCase()))
+                  .map((cat) => {
+                    const CatIcon = categoryIconFor(cat)
+                    return (
+                      <label key={cat} className={`filter-option ${selectedCategories.has(cat) ? "checked" : ""}`}>
+                        <input type="checkbox" checked={selectedCategories.has(cat)} onChange={() => toggleCategory(cat)} />
+                        <CatIcon />
+                        <span style={{ flex: 1 }}>{cat}</span>
+                        <span className="filter-check">{selectedCategories.has(cat) && <CheckIcon />}</span>
                       </label>
-                    ))
-                  : (["free", "pro"] as const).map((access) => (
-                      <label key={access} className="filter-option">
-                        <input
-                          type="checkbox"
-                          checked={selectedAccess.has(access)}
-                          onChange={() => toggleAccess(access)}
-                        />
-                        {access === "free" ? "Free" : "Pro"}
-                      </label>
-                    ))}
-              </div>
-            </>
-          )}
+                    )
+                  })}
+              </>
+            )}
+            {openFilterGroup === "access" &&
+              (["free", "pro"] as const).map((access) => (
+                <label key={access} className={`filter-option ${selectedAccess.has(access) ? "checked" : ""}`}>
+                  <input type="checkbox" checked={selectedAccess.has(access)} onChange={() => toggleAccess(access)} />
+                  <span style={{ flex: 1 }}>{access === "free" ? "Free" : "Pro"}</span>
+                  <span className="filter-check">{selectedAccess.has(access) && <CheckIcon />}</span>
+                </label>
+              ))}
+            {openFilterGroup === "sort" && (
+              <label className={`filter-option ${sortRecent ? "checked" : ""}`}>
+                <input type="checkbox" checked={sortRecent} onChange={() => setSortRecent((v) => !v)} />
+                <span style={{ flex: 1 }}>Newest first</span>
+                <span className="filter-check">{sortRecent && <CheckIcon />}</span>
+              </label>
+            )}
+          </div>
         </div>
       )}
 
@@ -605,6 +723,7 @@ function Browse({
               component={c}
               busy={busyId === c.id}
               locked={!!(c.is_pro && isPro === false)}
+              proAvailable={proAvailable}
               warmed={!!c.module_url || warmedFiles.has(c.file_name ?? "")}
               onOpenDetail={() => setDetailComponent(c)}
               onSave={() => setSavingComponent(c)}
@@ -628,6 +747,7 @@ function Browse({
           component={detailComponent}
           busy={busyId === detailComponent.id}
           locked={detailComponent.is_pro && isPro === false}
+          proAvailable={proAvailable}
           onClose={() => setDetailComponent(null)}
           onInsert={() => handleInsert(detailComponent)}
           onUpgrade={() => setShowProDrawer(true)}
@@ -638,7 +758,7 @@ function Browse({
         />
       )}
 
-      {showProDrawer && <ProDrawer onClose={() => setShowProDrawer(false)} />}
+      {showProDrawer && <ProDrawer proAvailable={proAvailable} onClose={() => setShowProDrawer(false)} />}
     </div>
   )
 }
@@ -654,6 +774,7 @@ function GalleryCard({
   component,
   busy,
   locked,
+  proAvailable,
   warmed,
   onOpenDetail,
   onSave,
@@ -661,6 +782,7 @@ function GalleryCard({
   component: ComponentRow
   busy: boolean
   locked: boolean
+  proAvailable: boolean | null
   warmed: boolean
   onOpenDetail: () => void
   onSave: () => void
@@ -708,14 +830,21 @@ function GalleryCard({
       <div className="card-footer">
         <span className="card-name">
           {component.name}
-          {component.is_pro && <span className="pro-badge">PRO</span>}
+          {locked ? (
+            <span className="locked-hint">{proAvailable === false ? "Coming soon" : "Tap to unlock"}</span>
+          ) : busy ? (
+            <span className="insert-hint">Inserting…</span>
+          ) : (
+            warmed && <DragHandleIcon />
+          )}
         </span>
-        {locked ? (
-          <span className="locked-hint">Tap to unlock</span>
-        ) : busy ? (
-          <span className="insert-hint">Inserting…</span>
+        {component.is_pro ? (
+          <span className="pro-badge">
+            <CrownIcon />
+            {proAvailable === false ? "Soon" : "Pro"}
+          </span>
         ) : (
-          warmed && <DragHandleIcon />
+          <span className="badge-free">Free</span>
         )}
       </div>
     </div>
@@ -726,6 +855,7 @@ function ComponentDetail({
   component,
   busy,
   locked,
+  proAvailable,
   onClose,
   onInsert,
   onUpgrade,
@@ -734,72 +864,65 @@ function ComponentDetail({
   component: ComponentRow
   busy: boolean
   locked: boolean
+  proAvailable: boolean | null
   onClose: () => void
   onInsert: () => void
   onUpgrade: () => void
   onSave: () => void
 }) {
+  const CategoryIcon = categoryIconFor(component.category)
+
   return (
-    <div className="drawer-backdrop" onClick={onClose}>
-      <div className="drawer detail-drawer" onClick={(e) => e.stopPropagation()}>
-        <div className="drawer-handle" />
-        <div className="detail-preview-wrap">
+    <div className="bx-detail-screen">
+      <button className="bx-detail-back" onClick={onClose}>
+        <span>‹</span> Back
+      </button>
+      <div className="bx-detail-scroll">
+        <div className="greeting" style={{ paddingBottom: 6 }}>
+          <div className="greeting-title">{component.name}</div>
+          <div className="greeting-subtitle">
+            {component.category}
+            {component.is_pro && (
+              <span className="pro-badge" style={{ marginLeft: 8 }}>
+                <CrownIcon />
+                {proAvailable === false ? "Soon" : "Pro"}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="bx-detail-preview-wrap">
           {component.preview_image_url ? (
-            <div className="detail-preview">
+            <div className="bx-detail-preview">
               <img src={component.preview_image_url} alt="" />
             </div>
           ) : component.preview_svg ? (
-            <div className="detail-preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
+            <div className="bx-detail-preview" dangerouslySetInnerHTML={{ __html: component.preview_svg }} />
           ) : (
-            (() => {
-              const CategoryIcon = categoryIconFor(component.category)
-              return (
-                <div className="detail-preview preview-fallback">
-                  <CategoryIcon />
-                </div>
-              )
-            })()
+            <div className="bx-detail-preview preview-fallback">
+              <CategoryIcon />
+            </div>
           )}
+          <div className="bx-detail-fade" />
           {locked && (
-            <div className="preview-lock detail-preview-lock">
+            <div className="preview-lock">
               <div className="preview-lock-icon"><LockIcon /></div>
             </div>
           )}
         </div>
-        <div className="detail-title-row">
-          <span className="drawer-title">{component.name}</span>
-          {component.is_pro && <span className="pro-badge">PRO</span>}
-        </div>
-        <div className="detail-category">{component.category}</div>
+      </div>
 
+      <div className="bx-detail-actions">
         {locked ? (
-          <>
-            <div className="detail-actions">
-              <button className="detail-save-btn" onClick={onSave}>
-                <BookmarkIcon /> Save
-              </button>
-              <button className="detail-insert-btn detail-upgrade-btn" onClick={onUpgrade}>
-                Upgrade to Pro →
-              </button>
-            </div>
-            <div className="detail-hint">This is a Pro component — upgrade to insert it.</div>
-          </>
+          <button className="bx-insert-block" onClick={onUpgrade}>
+            {proAvailable === false ? "Coming soon" : "Upgrade to Pro →"}
+          </button>
         ) : (
-          <>
-            <div className="detail-actions">
-              <button className="detail-save-btn" onClick={onSave}>
-                <BookmarkIcon /> Save
-              </button>
-              <button className="detail-insert-btn" onClick={onInsert} disabled={busy}>
-                {busy ? "Inserting…" : "Insert"}
-              </button>
-            </div>
-            <div className="detail-hint">Or drag the card straight onto the canvas.</div>
-          </>
+          <button className="bx-insert-block" onClick={onInsert} disabled={busy}>
+            {busy ? "Inserting…" : "Insert"}
+          </button>
         )}
-
-        <button className="drawer-done" onClick={onClose}>
-          Close
+        <button className="bx-save-icon" onClick={onSave} title="Save to boards">
+          <BookmarkIcon />
         </button>
       </div>
     </div>

@@ -12,7 +12,7 @@ async function callAdminUpdate(body: Record<string, unknown>): Promise<void> {
 
 export async function updateComponentFields(
   componentId: string,
-  fields: { name?: string; category?: string; is_pro?: boolean }
+  fields: { name?: string; category?: string; is_pro?: boolean; section?: "part" | "panel" | "page" | null }
 ): Promise<void> {
   await callAdminUpdate({ action: "update", componentId, ...fields })
 }

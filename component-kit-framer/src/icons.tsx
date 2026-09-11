@@ -228,10 +228,27 @@ export function CodeIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function KeyboardIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="2.5" y="7" width="19" height="12" rx="2.5" />
+      <path d="M6.5 11h.01M10 11h.01M13.5 11h.01M17 11h.01M8 14.5h8" />
+    </Icon>
+  )
+}
+
 export function CrownIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Icon {...props}>
       <path d="m4 8 3.5 3L12 5l4.5 6L20 8l-1.5 10h-13Z" />
+    </Icon>
+  )
+}
+
+export function ChevronDownIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="m6 9 6 6 6-6" />
     </Icon>
   )
 }
@@ -316,6 +333,64 @@ export function FooterBarIcon(props: SVGProps<SVGSVGElement>) {
       <rect x="4" y="14" width="16" height="6" rx="1.2" />
     </Icon>
   )
+}
+
+/** The Home hero tile's "Browse all" icon — four separate rounded squares, distinct from
+ * GridIcon's own path (which is used elsewhere for a different meaning). */
+export function HomeGridIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+    </Icon>
+  )
+}
+
+/** An isometric box outline — Home/Build's "Parts" section. */
+export function PartIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3.5 20 8v8l-8 4.5L4 16V8Z" />
+      <path d="M4 8l8 4.5L20 8" />
+      <path d="M12 12.5V21" />
+    </Icon>
+  )
+}
+
+/** Three stacked bars, the last one shorter — Home/Build's "Panels" section. */
+export function PanelIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="4.5" width="18" height="4" rx="1.2" />
+      <rect x="3" y="10" width="18" height="4" rx="1.2" />
+      <rect x="3" y="15.5" width="11" height="4" rx="1.2" />
+    </Icon>
+  )
+}
+
+/** A document with text lines — Home/Build's "Pages" section. Deliberately not GridIcon/
+ * HomeGridIcon — a "page" and "browse everything" are different concepts and shouldn't share
+ * an icon just because both happened to be unclaimed. */
+export function PageIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="4" y="3.5" width="16" height="17" rx="2" />
+      <path d="M7.5 8h9M7.5 12h9M7.5 16h5" />
+    </Icon>
+  )
+}
+
+export function sectionIconFor(section: "part" | "panel" | "page") {
+  switch (section) {
+    case "part":
+      return PartIcon
+    case "panel":
+      return PanelIcon
+    case "page":
+      return PageIcon
+  }
 }
 
 export function categoryIconFor(category: string) {

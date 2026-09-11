@@ -94,20 +94,15 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (user: User) => void
 
   return (
     <div className="login">
+      <svg className="login-bg-mark" viewBox="0 0 32 32" fill="none">
+        <path d="M8 22V10l7-4 9 5v12l-9 5-7-4Z" stroke="currentColor" strokeWidth="2" />
+        <path d="M8 10l9 5 9-5M17 15v12" stroke="currentColor" strokeWidth="2" />
+      </svg>
       <div className="login-brand">
-        <svg className="login-mark" viewBox="0 0 100 100" width="44" height="44">
-          <defs>
-            <linearGradient id="loginMarkGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#6b78ff" />
-              <stop offset="100%" stopColor="#3a46e0" />
-            </linearGradient>
-          </defs>
-          <rect width="100" height="100" rx="24" fill="url(#loginMarkGrad)" />
-          <text x="50" y="67" fontFamily="Inter, sans-serif" fontSize="42" fontWeight="800" fill="white" textAnchor="middle">
-            S
-          </text>
-        </svg>
-        <div className="login-name">Skela</div>
+        <div className="login-brand-row">
+          <img className="login-mark" src="/logo-mark.svg" width="44" height="44" alt="" />
+          <div className="login-name">Skela</div>
+        </div>
         <div className="login-tagline">Ready-made components for Framer</div>
       </div>
 

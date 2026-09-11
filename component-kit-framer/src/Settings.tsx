@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import { signOut } from "./lib/auth"
 import { getProStatus } from "./lib/payments"
 import { getFullName } from "./lib/profile"
 import { fetchPricing, updatePricing, formatPrice, type Pricing } from "./lib/pricing"
-import { MoonIcon, SunIcon, CrownIcon, RefreshIcon, ImageStackIcon, CodeIcon, LockIcon, TrashIcon, CreditCardIcon } from "./icons"
+import { MoonIcon, SunIcon, CrownIcon, RefreshIcon, ImageStackIcon, CodeIcon, LockIcon, TrashIcon, CreditCardIcon, MessageIcon, FormIcon, KeyboardIcon } from "./icons"
+import { updateProAvailable, updateUiOpacity } from "./lib/appSettings"
+import { FillSlider } from "./components/FillSlider"
 import { SUPPORT_EMAIL } from "./lib/support"
 import { insertFromModuleUrl, insertLinkedFromUrl } from "./nodeBuilders"
 import { syncComponentsFromCurrentProject } from "./lib/sync"
@@ -24,22 +26,41 @@ import { fetchStagedComponents } from "./lib/stagedComponents"
 
 type ThemePref = "light" | "dark"
 
+function initialsFor(name: string | null, email: string | null): string {
+  if (name?.trim()) {
+    const parts = name.trim().split(/\s+/)
+    return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || parts[0].slice(0, 2).toUpperCase()
+  }
+  return (email ?? "").slice(0, 2).toUpperCase()
+}
+
 export default function Settings({
   user,
   theme,
   onToggleTheme,
   onLogOut,
   onComponentsChanged,
+  proAvailable,
+  onProAvailableChanged,
+  isSuperAdmin,
+  uiOpacity,
+  onUiOpacityChanged,
 }: {
   user: User
   theme: ThemePref
   onToggleTheme: () => void
   onLogOut: () => void
   onComponentsChanged: () => void
+  proAvailable: boolean | null
+  onProAvailableChanged: (v: boolean) => void
+  isSuperAdmin: boolean
+  uiOpacity: number
+  onUiOpacityChanged: (v: number) => void
 }) {
   const [isPro, setIsPro] = useState<boolean | null>(null)
   const [showProDrawer, setShowProDrawer] = useState(false)
   const [fullName, setFullName] = useState<string | null>(null)
+  const [showShortcuts, setShowShortcuts] = useState(false)
   const [showEditPricing, setShowEditPricing] = useState(false)
   const [pricing, setPricing] = useState<Pricing | null>(null)
   const [priceInput, setPriceInput] = useState("")
@@ -58,7 +79,45 @@ export default function Settings({
   const [allowedProjects, setAllowedProjects] = useState<AllowedSyncProject[] | null>(null)
   const [syncProjectsBusy, setSyncProjectsBusy] = useState(false)
   const [syncProjectsStatus, setSyncProjectsStatus] = useState<string | null>(null)
+  const [proToggleBusy, setProToggleBusy] = useState(false)
+  const [proToggleStatus, setProToggleStatus] = useState<string | null>(null)
+  const [opacitySaving, setOpacitySaving] = useState(false)
+  const [opacityStatus, setOpacityStatus] = useState<string | null>(null)
+  const opacitySaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isAdmin = isAdminEmail(user.email)
+
+  async function handleToggleProAvailable() {
+    const next = !proAvailable
+    setProToggleBusy(true)
+    setProToggleStatus(null)
+    try {
+      await updateProAvailable(next)
+      onProAvailableChanged(next)
+    } catch (err) {
+      setProToggleStatus(err instanceof Error ? err.message : "Couldn't save — check the table/function are deployed")
+    } finally {
+      setProToggleBusy(false)
+    }
+  }
+
+  function handleOpacityChange(next: number) {
+    // Applied to local state (and the whole app) immediately on every drag tick, but the actual
+    // network write is debounced — persisting on every pixel of a pointer drag would spam the
+    // edge function.
+    onUiOpacityChanged(next)
+    if (opacitySaveTimer.current) clearTimeout(opacitySaveTimer.current)
+    setOpacitySaving(true)
+    setOpacityStatus(null)
+    opacitySaveTimer.current = setTimeout(async () => {
+      try {
+        await updateUiOpacity(next)
+      } catch (err) {
+        setOpacityStatus(err instanceof Error ? err.message : "Couldn't save — check the table/function are deployed")
+      } finally {
+        setOpacitySaving(false)
+      }
+    }, 300)
+  }
 
   useEffect(() => {
     getFullName(user.id).then(setFullName)
@@ -194,6 +253,7 @@ export default function Settings({
   if (showEditComponents) {
     return (
       <EditComponents
+        isSuperAdmin={isSuperAdmin}
         onBack={() => {
           setShowEditComponents(false)
           onComponentsChanged()
@@ -226,30 +286,20 @@ export default function Settings({
 
   return (
     <div className="settings">
-      <div className="settings-section">
-        <h3>Account</h3>
-        {fullName && (
-          <div className="settings-row">
-            <span>Name</span>
-            <span className="settings-value">{fullName}</span>
-          </div>
-        )}
+      <div className="settings-group">
         <div className="settings-row">
-          <span>Email</span>
-          <span className="settings-value">{user.email}</span>
+          <span className="st-avatar">{initialsFor(fullName, user.email ?? null)}</span>
+          <span style={{ flex: 1 }}>
+            <span style={{ display: "block", fontWeight: 700 }}>{fullName || "Your account"}</span>
+            <span className="admin-row-sub">{user.email}</span>
+          </span>
         </div>
-        <button className="settings-danger" onClick={async () => {
-          await signOut()
-          onLogOut()
-        }}>
-          Log out
-        </button>
       </div>
 
-      <div className="settings-section">
-        <h3>Plan</h3>
+      <div className="settings-group-label">Plan</div>
+      <div className="settings-group">
         {isPro ? (
-          <div className="pro-card">
+          <div className="pro-card" style={{ margin: 12 }}>
             <div className="pro-card-crown">
               <CrownIcon />
             </div>
@@ -265,57 +315,103 @@ export default function Settings({
               <span className="settings-value">{isPro === null ? "…" : "Free"}</span>
             </div>
             {isPro === false && (
-              <button className="settings-upgrade-btn" onClick={() => setShowProDrawer(true)}>
-                <CrownIcon />
-                Upgrade to Pro
+              <button className="settings-upgrade-row" onClick={() => setShowProDrawer(true)}>
+                <span className="settings-upgrade-crown">
+                  <CrownIcon />
+                </span>
+                <span style={{ flex: 1, textAlign: "left" }}>
+                  <span style={{ display: "block", fontWeight: 700 }}>
+                    {proAvailable === false ? "Pro — coming soon" : "Upgrade to Pro"}
+                  </span>
+                  <span className="admin-row-sub">
+                    {proAvailable === false ? "We're building the Pro library" : "Every component, unlocked"}
+                  </span>
+                </span>
+                <span className="settings-row-chevron">›</span>
               </button>
             )}
           </>
         )}
       </div>
 
-      <div className="settings-section">
-        <h3>Appearance</h3>
+      <div className="settings-group-label">Preferences</div>
+      <div className="settings-group">
         <div className="settings-row">
-          <span>Theme</span>
-          <button
-            className={`theme-switch ${theme === "dark" ? "is-dark" : ""}`}
-            onClick={onToggleTheme}
-            role="switch"
-            aria-checked={theme === "dark"}
-            aria-label="Toggle theme"
-          >
-            <span className="theme-switch-thumb">
-              {theme === "dark" ? <MoonIcon /> : <SunIcon />}
-            </span>
-          </button>
+          <span style={{ display: "flex", alignItems: "center" }}>
+            <span className="settings-row-icon">{theme === "dark" ? <MoonIcon /> : <SunIcon />}</span>
+            Theme
+          </span>
+          <div className="colors-theme-toggle">
+            <button className={theme === "light" ? "active" : ""} onClick={() => theme !== "light" && onToggleTheme()} title="Light theme">
+              <SunIcon />
+            </button>
+            <button className={theme === "dark" ? "active moon" : ""} onClick={() => theme !== "dark" && onToggleTheme()} title="Dark theme">
+              <MoonIcon />
+            </button>
+          </div>
         </div>
+        <button className="settings-row clickable" onClick={() => setShowShortcuts((v) => !v)}>
+          <span className="settings-row-icon">
+            <KeyboardIcon />
+          </span>
+          <span style={{ flex: 1, textAlign: "left" }}>Keyboard shortcuts</span>
+          <span className="settings-row-chevron">{showShortcuts ? "⌄" : "›"}</span>
+        </button>
       </div>
 
-      <div className="settings-section">
-        <h3>Feedback</h3>
+      {showShortcuts && (
+        <div className="admin-devtools" style={{ margin: "-8px 0 16px" }}>
+          <div className="shortcut-group-label">Go to — spells S·K·E·L·A</div>
+          <div className="shortcut-row"><span>Home</span><span className="kbd">S</span></div>
+          <div className="shortcut-row"><span>Build</span><span className="kbd">K</span></div>
+          <div className="shortcut-row"><span>Boards</span><span className="kbd">E</span></div>
+          <div className="shortcut-row"><span>Colors</span><span className="kbd">L</span></div>
+          <div className="shortcut-row"><span>Settings</span><span className="kbd">A</span></div>
+          <div className="shortcut-group-label">General</div>
+          <div className="shortcut-row"><span>Focus search</span><span className="kbd">/</span></div>
+          <div className="shortcut-row"><span>Close panel</span><span className="kbd">Esc</span></div>
+          <div className="shortcut-row"><span>Navigate results</span><span className="kbd">↑ ↓</span></div>
+          <div className="shortcut-row"><span>Insert selected</span><span className="kbd">Enter</span></div>
+          <div className="shortcut-row"><span>Command palette</span><span className="kbd">⌘K</span></div>
+        </div>
+      )}
+
+      <div className="settings-group-label">Support</div>
+      <div className="settings-group">
         {SUPPORT_EMAIL ? (
-          <a className="settings-link" href={`mailto:${SUPPORT_EMAIL}`}>
-            Report a bug or request a component →
+          <a className="settings-row clickable" href={`mailto:${SUPPORT_EMAIL}`}>
+            <span className="settings-row-icon">
+              <MessageIcon />
+            </span>
+            <span style={{ flex: 1 }}>Report a bug or request a component</span>
+            <span className="settings-row-chevron">›</span>
           </a>
         ) : (
-          <p className="settings-muted">Support contact not set up yet.</p>
+          <div className="settings-row">
+            <span className="settings-muted">Support contact not set up yet.</span>
+          </div>
         )}
-      </div>
-
-      <div className="settings-section">
-        <h3>Legal</h3>
-        <button className="settings-link" style={{ display: "block", marginBottom: 8 }} onClick={() => setShowLegal("terms")}>
-          Terms of Service →
+        <button className="settings-row clickable" onClick={() => setShowLegal("terms")}>
+          <span className="settings-row-icon">
+            <FormIcon />
+          </span>
+          <span style={{ flex: 1, textAlign: "left" }}>Terms of Service</span>
+          <span className="settings-row-chevron">›</span>
         </button>
-        <button className="settings-link" style={{ display: "block" }} onClick={() => setShowLegal("privacy")}>
-          Privacy Policy →
+        <button className="settings-row clickable" onClick={() => setShowLegal("privacy")}>
+          <span className="settings-row-icon">
+            <FormIcon />
+          </span>
+          <span style={{ flex: 1, textAlign: "left" }}>Privacy Policy</span>
+          <span className="settings-row-chevron">›</span>
         </button>
       </div>
 
       {isAdmin && (
         <div className="settings-section">
-          <h3>Admin</h3>
+          <div className="settings-group-label">
+            Admin <span className="admin-badge">ADMIN ONLY</span>
+          </div>
 
           <button className="admin-row" onClick={() => setShowEditComponents(true)}>
             <span className="admin-row-icon">
@@ -323,10 +419,29 @@ export default function Settings({
             </span>
             <span className="admin-row-text">
               <span className="admin-row-title">Edit Components</span>
-              <span className="admin-row-sub">Names, categories, tiers, preview images</span>
+              <span className="admin-row-sub">Names, sections, categories, tiers, preview images</span>
             </span>
             <span className="admin-row-chevron">›</span>
           </button>
+
+          <div className="admin-row static">
+            <span className="admin-row-icon">
+              <CrownIcon />
+            </span>
+            <span className="admin-row-text">
+              <span className="admin-row-title">Pro available</span>
+              <span className="admin-row-sub">
+                {proAvailable === false ? "Off — every Pro surface shows “Coming soon”" : "On — real checkout is live"}
+              </span>
+            </span>
+            <button
+              className={`bool-switch ${proAvailable ? "on" : ""}`}
+              onClick={handleToggleProAvailable}
+              disabled={proToggleBusy || proAvailable === null}
+              aria-label="Toggle Pro availability"
+            />
+          </div>
+          {proToggleStatus && <p className="settings-muted">{proToggleStatus}</p>}
 
           <button className="admin-row" onClick={openEditPricing}>
             <span className="admin-row-icon">
@@ -475,8 +590,42 @@ export default function Settings({
         </div>
       )}
 
+      {isSuperAdmin && (
+        <div className="settings-section">
+          <div className="settings-group-label">Super Admin</div>
+          <div className="admin-row stacked">
+            <span className="admin-row-text">
+              <span className="admin-row-title">Interface opacity</span>
+              <span className="admin-row-sub">
+                Applies to everyone except you{opacitySaving ? " — saving…" : ""} · {Math.round(uiOpacity * 100)}%
+              </span>
+            </span>
+            <FillSlider min={0} max={1} step={0.01} value={uiOpacity} onChange={handleOpacityChange} />
+          </div>
+          {opacityStatus && <p className="settings-muted">{opacityStatus}</p>}
+        </div>
+      )}
+
+      <div className="settings-group danger">
+        <button
+          className="settings-row clickable"
+          onClick={async () => {
+            await signOut()
+            onLogOut()
+          }}
+        >
+          <span className="settings-row-icon" style={{ background: "rgba(229, 72, 77, 0.16)", color: "var(--danger)" }}>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3M16 17l5-5-5-5M21 12H9" />
+            </svg>
+          </span>
+          <span style={{ flex: 1, textAlign: "left", color: "var(--danger)", fontWeight: 700 }}>Log out</span>
+        </button>
+      </div>
+
       {showProDrawer && (
         <ProDrawer
+          proAvailable={proAvailable}
           onClose={() => {
             setShowProDrawer(false)
             getProStatus().then(setIsPro)

@@ -23,12 +23,15 @@ export interface ComponentRow {
   // leaves those two fields alone forever for this row, instead of re-deriving them from
   // Framer on every sync. See sync-framer-components.
   tier_manually_set: boolean
+  // Part/Panel/Page placement for Home/Build's top-level grouping — separate from tier
+  // (Free/Pro) above. Admin-only, never touched by sync. Null = uncategorized.
+  section: "part" | "panel" | "page" | null
   created_at: string
   updated_at: string
 }
 
 export const COMPONENT_COLUMNS =
-  "id, name, category, is_pro, preview_svg, preview_image_url, file_name, module_url, sort_order, tier_manually_set, created_at, updated_at"
+  "id, name, category, is_pro, preview_svg, preview_image_url, file_name, module_url, sort_order, tier_manually_set, section, created_at, updated_at"
 
 export async function fetchComponents(): Promise<ComponentRow[]> {
   const { data, error } = await supabase

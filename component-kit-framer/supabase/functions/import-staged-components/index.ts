@@ -93,11 +93,23 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "discard") {
-      const { id } = body
-      if (!id) throw new Error("Missing id")
-      const { error } = await admin.from("components_staging").delete().eq("id", id)
+      // Bulk form (ids: string[] | "all") takes priority — the single-id call still works
+      // (id is treated as ids: [id]) so existing callers don't need to change.
+      const { id, ids } = body
+      let query = admin.from("components_staging").delete()
+      if (ids === "all") {
+        // No .in() filter — delete every staged row.
+      } else if (Array.isArray(ids)) {
+        if (ids.length === 0) throw new Error("Expected ids: string[] or 'all'")
+        query = query.in("id", ids)
+      } else if (id) {
+        query = query.eq("id", id)
+      } else {
+        throw new Error("Missing id or ids")
+      }
+      const { error, count } = await query.select("id", { count: "exact" })
       if (error) throw error
-      return new Response(JSON.stringify({ ok: true }), {
+      return new Response(JSON.stringify({ ok: true, discarded: count ?? 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
     }

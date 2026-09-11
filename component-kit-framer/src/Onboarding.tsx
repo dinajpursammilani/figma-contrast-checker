@@ -87,6 +87,10 @@ export default function Onboarding({ user, onDone }: { user: User; onDone: () =>
 
   return (
     <div className="onboarding">
+      <svg className="ob-bg-mark" viewBox="0 0 32 32" fill="none">
+        <path d="M8 22V10l7-4 9 5v12l-9 5-7-4Z" stroke="currentColor" strokeWidth="2" />
+        <path d="M8 10l9 5 9-5M17 15v12" stroke="currentColor" strokeWidth="2" />
+      </svg>
       <div className="onboarding-header">
         {step > 1 ? (
           <button className="onboarding-back" onClick={() => setStep(step - 1)}>

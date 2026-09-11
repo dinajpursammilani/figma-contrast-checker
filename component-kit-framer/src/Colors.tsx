@@ -1,32 +1,57 @@
-import { useEffect, useState } from "react"
-import { generateScale, readableTextColor, hexToHsl, hslToHex } from "./lib/color"
+import { useEffect, useRef, useState, type CSSProperties } from "react"
+import { generateScale, readableTextColor, LIGHT_L, DARK_L } from "./lib/color"
 import { SunIcon, MoonIcon } from "./icons"
 import { applyColorToSelection } from "./lib/applyColor"
 import { insertColorStyles, insertTextStyles } from "./lib/framerStyles"
 import { generateTextScale } from "./lib/textScale"
 import { fetchPalettes, savePalette, deletePalette, type Palette } from "./lib/palettes"
+import { FillSlider } from "./components/FillSlider"
 
 type Mode = "color" | "text"
 
-const RATIO_PRESETS = [
+const RATIOS = [
+  { label: "Minor Second", value: 1.067 },
+  { label: "Major Second", value: 1.125 },
   { label: "Minor Third", value: 1.2 },
   { label: "Major Third", value: 1.25 },
   { label: "Perfect Fourth", value: 1.333 },
+  { label: "Augmented Fourth", value: 1.414 },
+  { label: "Perfect Fifth", value: 1.5 },
+  { label: "Golden Ratio", value: 1.618 },
 ]
 
-/** A reasonable starting dark-theme counterpart for a light base color — deeper and a touch
- * more saturated, the same rough adjustment most design systems make by hand. Just a starting
- * point: the dark swatch has its own picker, so this only matters until someone touches it. */
-function darkenForTheme(hex: string): string {
-  const { h, s, l } = hexToHsl(hex)
-  return hslToHex({ h, s: Math.min(100, s + 8), l: Math.max(12, l - 32) })
+const WEIGHT_LABELS: Record<number, string> = {
+  100: "Thin", 200: "Extra Light", 300: "Light", 400: "Regular", 500: "Medium",
+  600: "Semibold", 700: "Bold", 800: "Extra Bold", 900: "Black",
+}
+
+/** A fully custom slider (not a styled native <input type="range">) — the native element's
+ * ::-webkit-slider-thumb pseudo-element turned out impossible to reliably style OR inspect in
+ * Framer's embedded webview (getComputedStyle(el, "::-webkit-slider-thumb") silently returns
+ * the base element's own styles there instead of the pseudo-element's, so there was no way to
+ * even verify what was actually wrong). Building the thumb as a real, plain <div> we position
+ * ourselves sidesteps all of that — the fill width and thumb position both come from the exact
+ * same percentage, so they can never visually disagree, and nothing here depends on any
+ * browser's specific slider-rendering internals. */
+function InfoDot({ title }: { title: string }) {
+  return (
+    <span className="colors-info-dot" title={title}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 11v5.5" strokeLinecap="round" />
+        <circle cx="12" cy="8" r="0.9" fill="currentColor" stroke="none" />
+      </svg>
+    </span>
+  )
 }
 
 export default function Colors() {
   const [mode, setMode] = useState<Mode>("color")
   const [baseColor, setBaseColor] = useState("#4A5AFF")
-  const [darkColor, setDarkColor] = useState(() => darkenForTheme("#4A5AFF"))
-  const [darkTouched, setDarkTouched] = useState(false)
+  // null = derive the dark scale from the same base hue/chroma via OKLCH (just a different
+  // lightness curve) — a manual override only kicks in once someone actually fine-tunes it.
+  const [darkOverride, setDarkOverride] = useState<string | null>(null)
+  const [finetuneOpen, setFinetuneOpen] = useState(false)
   const [theme, setTheme] = useState<"light" | "dark">("light")
   const [toast, setToast] = useState<string | null>(null)
   const [applyingHex, setApplyingHex] = useState<string | null>(null)
@@ -36,28 +61,24 @@ export default function Colors() {
   const [insertingStyles, setInsertingStyles] = useState(false)
 
   const [baseSize, setBaseSize] = useState(16)
-  const [ratio, setRatio] = useState(1.25)
+  const [ratioIdx, setRatioIdx] = useState(3)
+  const ratio = RATIOS[ratioIdx].value
   const [weight, setWeight] = useState(600)
   const [fontFamily, setFontFamily] = useState("Inter")
   const [textFolderName, setTextFolderName] = useState("")
   const [insertingText, setInsertingText] = useState(false)
 
-  const lightScale = generateScale(baseColor)
-  const darkScale = generateScale(darkColor)
+  const darkBase = darkOverride ?? baseColor
+  const lightScale = generateScale(baseColor, LIGHT_L)
+  const darkScale = generateScale(darkBase, DARK_L)
   const scale = theme === "light" ? lightScale : darkScale
   const textScale = generateTextScale(baseSize, ratio)
-  const [activeStep, setActiveStep] = useState(scale[Math.floor(scale.length / 2)].step)
-  const active = scale.find((s) => s.step === activeStep) ?? scale[0]
+  const [activeStep, setActiveStep] = useState(400)
+  const active = scale.find((s) => s.step === activeStep) ?? scale[4]
 
   useEffect(() => {
-    setActiveStep(scale[Math.floor(scale.length / 2)].step)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [theme, baseColor, darkColor])
-
-  useEffect(() => {
-    if (!darkTouched) setDarkColor(darkenForTheme(baseColor))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseColor])
+    setActiveStep(400)
+  }, [theme])
 
   useEffect(() => {
     loadPalettes()
@@ -157,8 +178,10 @@ export default function Colors() {
   return (
     <div className="app">
       <div className="greeting">
-        <div className="greeting-title">Colors</div>
-        <div className="greeting-subtitle">Build a color or type scale, insert it as real Framer Styles.</div>
+        <div className="greeting-title">{mode === "color" ? "Colors" : "Type"}</div>
+        <div className="greeting-subtitle">
+          {mode === "color" ? "Build a color scale, insert it as real Framer Styles." : "Build a type scale, insert it as real Framer Styles."}
+        </div>
       </div>
 
       <div className="colors-mode-tabs">
@@ -173,53 +196,62 @@ export default function Colors() {
       {mode === "color" ? (
         <div className="colors-scroll">
           <div className="colors-theme-row">
-            <span className="colors-section-label" style={{ margin: 0 }}>
-              {theme === "light" ? "Light" : "Dark"} base
-            </span>
+            <div>
+              <div className="colors-section-label" style={{ margin: 0 }}>
+                Base color
+              </div>
+              <div className={`auto-badge ${darkOverride ? "custom" : ""}`}>
+                <span className="auto-dot">●</span>
+                <span>{darkOverride ? "Custom dark shade" : "Auto-matched dark (OKLCH)"}</span>
+                <button type="button" onClick={() => setFinetuneOpen((v) => !v)}>
+                  Fine-tune
+                </button>
+              </div>
+            </div>
             <div className="colors-theme-toggle">
-              <button className={theme === "light" ? "active" : ""} onClick={() => setTheme("light")} title="Light theme">
+              <button className={theme === "light" ? "active" : ""} onClick={() => setTheme("light")} title="Preview: light theme">
                 <SunIcon />
               </button>
-              <button className={theme === "dark" ? "active" : ""} onClick={() => setTheme("dark")} title="Dark theme">
+              <button className={theme === "dark" ? "active" : ""} onClick={() => setTheme("dark")} title="Preview: dark theme">
                 <MoonIcon />
               </button>
             </div>
           </div>
 
           <div className="colors-picker-row">
-            <input
-              type="color"
-              className="colors-swatch-input"
-              value={theme === "light" ? baseColor : darkColor}
-              onChange={(e) => {
-                if (theme === "light") setBaseColor(e.target.value)
-                else {
-                  setDarkTouched(true)
-                  setDarkColor(e.target.value)
-                }
-              }}
-            />
+            <input type="color" className="colors-swatch-input" value={baseColor} onChange={(e) => setBaseColor(e.target.value)} />
             <input
               className="search colors-hex-input"
-              value={theme === "light" ? baseColor : darkColor}
-              onChange={(e) => {
-                if (theme === "light") setBaseColor(e.target.value)
-                else {
-                  setDarkTouched(true)
-                  setDarkColor(e.target.value)
-                }
-              }}
+              value={baseColor}
+              onChange={(e) => setBaseColor(e.target.value)}
               spellCheck={false}
             />
           </div>
 
-          <div className="colors-section-label">Scale</div>
+          {finetuneOpen && (
+            <div className="finetune-row">
+              <input type="color" className="colors-swatch-input" value={darkBase} onChange={(e) => setDarkOverride(e.target.value)} />
+              <input className="search colors-hex-input" value={darkBase} onChange={(e) => setDarkOverride(e.target.value)} spellCheck={false} />
+              <button
+                className="finetune-reset"
+                type="button"
+                onClick={() => {
+                  setDarkOverride(null)
+                  setFinetuneOpen(false)
+                }}
+              >
+                Reset to auto
+              </button>
+            </div>
+          )}
+
+          <div className="colors-section-label">Scale — previewing {theme}</div>
           <div className="colors-strip">
             {scale.map(({ step, hex }) => (
               <button
                 key={step}
                 className={`colors-strip-seg ${step === activeStep ? "active" : ""}`}
-                style={{ background: hex, color: readableTextColor(hex) }}
+                style={{ "--seg-bg": hex, "--seg-color": readableTextColor(hex) } as CSSProperties}
                 onClick={() => setActiveStep(step)}
               >
                 {step}
@@ -251,9 +283,25 @@ export default function Colors() {
               {saving ? "…" : "Save"}
             </button>
           </div>
-          <button className="settings-upgrade-btn" style={{ marginTop: 4 }} onClick={handleInsertColorStyles} disabled={insertingStyles}>
-            {insertingStyles ? "Adding…" : "Insert as Color Styles →"}
-          </button>
+          <div className="colors-insert-card">
+            <div className="colors-insert-top">
+              <div className="colors-insert-strip">
+                {lightScale.map(({ step, hex }, i) => (
+                  <span
+                    key={step}
+                    style={{ background: `linear-gradient(135deg, ${hex} 50%, ${darkScale[i].hex} 50%)` }}
+                  />
+                ))}
+              </div>
+              <div className="colors-insert-meta">
+                <span className="colors-insert-count">{lightScale.length} Color Styles</span>
+                <span className="colors-insert-sub">each with a matched light + dark value</span>
+              </div>
+            </div>
+            <button className="colors-insert-btn" onClick={handleInsertColorStyles} disabled={insertingStyles}>
+              {insertingStyles ? "Adding…" : "Insert as Color Styles →"}
+            </button>
+          </div>
           <p className="settings-muted colors-hint">
             Adds every step above as a real Framer Color Style under Assets → Styles — reusable by any component in this project.
           </p>
@@ -265,7 +313,7 @@ export default function Colors() {
                 <div key={p.id} className="colors-saved-row">
                   <button className="colors-strip colors-strip-mini" onClick={() => setBaseColor(p.colors[Math.floor(p.colors.length / 2)] ?? p.colors[0])}>
                     {p.colors.map((hex, i) => (
-                      <span key={i} className="colors-strip-seg" style={{ background: hex }} />
+                      <span key={i} className="colors-strip-seg" style={{ "--seg-bg": hex } as CSSProperties} />
                     ))}
                   </button>
                   <span className="colors-saved-name">{p.name}</span>
@@ -279,62 +327,37 @@ export default function Colors() {
         </div>
       ) : (
         <div className="colors-scroll">
-          <div className="colors-text-controls">
+          <div className="colors-text-controls" style={{ paddingTop: 12 }}>
             <div className="colors-control-row">
-              <label className="onboarding-label">Base size</label>
+              <label className="onboarding-label colors-field-top">
+                Base size
+                <InfoDot title="The root paragraph size everything else scales from." />
+              </label>
               <span className="colors-control-value">{baseSize}px</span>
             </div>
-            <input
-              type="range"
-              min={12}
-              max={24}
-              value={baseSize}
-              onChange={(e) => setBaseSize(Number(e.target.value))}
-            />
+            <FillSlider min={12} max={24} value={baseSize} onChange={setBaseSize} />
 
-            <label className="onboarding-label">Scale ratio</label>
-            <div className="onboarding-toggle-row">
-              {RATIO_PRESETS.map((p) => (
-                <button
-                  key={p.label}
-                  className={`onboarding-toggle ${ratio === p.value ? "selected" : ""}`}
-                  onClick={() => setRatio(p.value)}
-                >
-                  {p.label}
-                </button>
-              ))}
+            <div className="colors-control-row">
+              <label className="onboarding-label colors-field-top">
+                Scale ratio
+                <InfoDot title="How much bigger each heading step is than the one below it." />
+              </label>
+              <span className="colors-control-value">
+                {RATIOS[ratioIdx].label} {ratio}
+              </span>
             </div>
+            <FillSlider min={0} max={RATIOS.length - 1} value={ratioIdx} onChange={setRatioIdx} />
 
             <div className="colors-control-row">
               <label className="onboarding-label">Weight</label>
-              <span className="colors-control-value">{weight}</span>
+              <span className="colors-control-value">
+                {WEIGHT_LABELS[weight] ?? ""} {weight}
+              </span>
             </div>
-            <input
-              type="range"
-              min={100}
-              max={900}
-              step={100}
-              value={weight}
-              onChange={(e) => setWeight(Number(e.target.value))}
-            />
-
-            <label className="onboarding-label">Font family</label>
-            <input className="onboarding-input" value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} />
+            <FillSlider min={100} max={900} step={100} value={weight} onChange={setWeight} />
           </div>
 
-          <div className="colors-save-row">
-            <input
-              className="search"
-              placeholder="Name this type set…"
-              value={textFolderName}
-              onChange={(e) => setTextFolderName(e.target.value)}
-            />
-          </div>
-          <button className="settings-upgrade-btn" style={{ marginTop: 4 }} onClick={handleInsertTextStyles} disabled={insertingText}>
-            {insertingText ? "Adding…" : "Insert Text Styles →"}
-          </button>
-
-          <div className="colors-section-label" style={{ marginTop: 18 }}>
+          <div className="colors-section-label" style={{ marginTop: 4 }}>
             Preview
           </div>
           <div className="colors-type-specimen">
@@ -352,6 +375,43 @@ export default function Colors() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="colors-text-controls" style={{ paddingTop: 14 }}>
+            <label className="onboarding-label">Font</label>
+            <input className="onboarding-input" value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} />
+          </div>
+
+          <div className="colors-save-row">
+            <input
+              className="search"
+              placeholder="Name this type set…"
+              value={textFolderName}
+              onChange={(e) => setTextFolderName(e.target.value)}
+            />
+          </div>
+          {!textFolderName.trim() && (
+            <p className="settings-muted colors-hint" style={{ paddingTop: 6 }}>
+              Name it above to insert these as Framer Text Styles.
+            </p>
+          )}
+          <div className="colors-insert-card">
+            <div className="colors-insert-top">
+              <div className="colors-insert-chips">
+                {textScale.map((s) => (
+                  <span key={s.label} className="colors-insert-chip">
+                    {s.label}
+                  </span>
+                ))}
+              </div>
+              <div className="colors-insert-meta">
+                <span className="colors-insert-count">{textScale.length} Text Styles</span>
+                <span className="colors-insert-sub">H1–H6 and P1–P3</span>
+              </div>
+            </div>
+            <button className="colors-insert-btn" onClick={handleInsertTextStyles} disabled={insertingText || !textFolderName.trim()}>
+              {insertingText ? "Adding…" : "Insert Text Styles →"}
+            </button>
           </div>
           <p className="settings-muted colors-hint">
             Adds H1-H6 and P1-P3 as real Framer Text Styles under Assets → Styles. If "{fontFamily}" isn't available, styles fall back

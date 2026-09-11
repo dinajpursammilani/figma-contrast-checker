@@ -34,6 +34,11 @@ export async function discardStagedComponent(id: string): Promise<void> {
   await call({ action: "discard", id })
 }
 
+export async function discardStagedComponents(ids: string[] | "all"): Promise<number> {
+  const { discarded } = await call<{ discarded: number }>({ action: "discard", ids })
+  return discarded
+}
+
 export async function importStagedComponents(ids: string[] | "all"): Promise<number> {
   const { imported } = await call<{ imported: number }>({ action: "import", ids })
   return imported

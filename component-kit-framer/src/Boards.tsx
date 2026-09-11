@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { insertComponent, insertFromModuleUrl } from "./nodeBuilders"
 import { fetchComponentSource } from "./lib/componentSource"
-import { LockIcon, FolderIcon, BookmarkIcon, TrashIcon, categoryIconFor } from "./icons"
+import { LockIcon, FolderIcon, BookmarkIcon, TrashIcon, CrownIcon, categoryIconFor } from "./icons"
 import { getProStatus } from "./lib/payments"
 import {
   fetchBoards,
@@ -131,6 +131,44 @@ export default function Boards() {
     toastTimer = setTimeout(() => setToast(null), 1800)
   }
 
+  function boardStack(items: SavedItem[]) {
+    const preview = items.slice(0, 3)
+    if (preview.length === 0) {
+      return (
+        <div className="board-stack-empty">
+          <FolderIcon />
+        </div>
+      )
+    }
+    // Fan up to 3 tiles around center, back-to-front so the middle one ends up on top.
+    const offsets = [-16, 0, 16]
+    const rotations = [-8, 0, 8]
+    return preview.map((item, i) => {
+      const c = item.component
+      return (
+        <div
+          key={item.id}
+          className="board-stack-tile"
+          style={{
+            transform: `translateX(calc(-50% + ${offsets[i]}px)) rotate(${rotations[i]}deg)`,
+            zIndex: 3 - Math.abs(i - 1),
+          }}
+        >
+          {c.preview_image_url ? (
+            <img src={c.preview_image_url} alt="" />
+          ) : c.preview_svg ? (
+            <div dangerouslySetInnerHTML={{ __html: c.preview_svg }} />
+          ) : (
+            (() => {
+              const CategoryIcon = categoryIconFor(c.category)
+              return <CategoryIcon />
+            })()
+          )}
+        </div>
+      )
+    })
+  }
+
   function renderSavedGrid(items: SavedItem[] | null, emptyMessage: string) {
     if (!items) {
       return Array.from({ length: 4 }).map((_, i) => <div key={i} className="card skeleton" />)
@@ -180,10 +218,15 @@ export default function Boards() {
             ✕
           </button>
           <div className="card-footer">
-            <span className="card-name">
-              {item.component.name}
-              {item.component.is_pro && <span className="pro-badge">PRO</span>}
-            </span>
+            <span className="card-name">{item.component.name}</span>
+            {item.component.is_pro ? (
+              <span className="pro-badge">
+                <CrownIcon />
+                Pro
+              </span>
+            ) : (
+              <span className="badge-free">Free</span>
+            )}
           </div>
         </div>
       )
@@ -203,7 +246,7 @@ export default function Boards() {
           </button>
         </div>
         <div className="boards-scroll">
-          <div className="grid">
+          <div className="list">
             {renderSavedGrid(boardItems, "Tap the bookmark icon on any component in Build to add it here.")}
           </div>
         </div>
@@ -245,21 +288,27 @@ export default function Boards() {
           ) : (
             <>
               {boards && boards.length > 0 && (
-                <div className="boards-list">
-                  {boards.map((b) => (
-                    <button key={b.id} className="board-item" onClick={() => openBoardDetail(b)}>
-                      <FolderIcon /> {b.name}
-                    </button>
-                  ))}
+                <>
+                <div className="home-section-label">Your boards</div>
+                <div className="grid">
+                  {boards.map((b) => {
+                    const items = allSaved?.filter((i) => i.board_id === b.id) ?? []
+                    return (
+                      <button key={b.id} className="board-card" onClick={() => openBoardDetail(b)}>
+                        <div className="board-card-stack">{boardStack(items)}</div>
+                        <div className="board-card-footer">
+                          <span className="board-card-name">{b.name}</span>
+                          <span className="board-card-count">{items.length} saved</span>
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
+                </>
               )}
 
-              <div className="greeting" style={{ paddingTop: 4 }}>
-                <div className="greeting-title" style={{ fontSize: 15 }}>
-                  All saved
-                </div>
-              </div>
-              <div className="grid">
+              <div className="home-section-label">All saved</div>
+              <div className="list">
                 {renderSavedGrid(allSaved, "Tap the bookmark icon on any component in Build to save it.")}
               </div>
             </>

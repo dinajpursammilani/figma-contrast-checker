@@ -3,9 +3,11 @@ import {
   fetchStagedComponents,
   updateStagedComponent,
   discardStagedComponent,
+  discardStagedComponents,
   importStagedComponents,
   type StagedComponent,
 } from "./lib/stagedComponents"
+import { SearchIcon, SlidersIcon } from "./icons"
 
 type TierFilter = "all" | "free" | "pro"
 type StatusFilter = "all" | "new" | "existing"
@@ -22,6 +24,10 @@ export default function ReviewSync({ onBack, onImported }: { onBack: () => void;
   const [search, setSearch] = useState("")
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
+  const [confirmReject, setConfirmReject] = useState<"selected" | "all" | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const activeFilterCount = (tierFilter !== "all" ? 1 : 0) + (statusFilter !== "all" ? 1 : 0)
 
   function load() {
     fetchStagedComponents()
@@ -79,6 +85,22 @@ export default function ReviewSync({ onBack, onImported }: { onBack: () => void;
     }
   }
 
+  async function handleReject(ids: string[] | "all") {
+    setBusy(true)
+    setStatus(null)
+    try {
+      const discarded = await discardStagedComponents(ids)
+      setStatus(`Rejected ${discarded} component${discarded === 1 ? "" : "s"} — removed from the review queue.`)
+      setSelected(new Set())
+      setConfirmReject(null)
+      load()
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "Reject failed")
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handleImport(ids: string[] | "all") {
     setBusy(true)
     setStatus(null)
@@ -102,30 +124,63 @@ export default function ReviewSync({ onBack, onImported }: { onBack: () => void;
           ‹ Back
         </button>
         <span className="drawer-title">Review Sync</span>
+        <button
+          className={`icon-btn ${searchOpen ? "active" : ""}`}
+          title="Search"
+          onClick={() => {
+            setSearchOpen((v) => !v)
+            setFiltersOpen(false)
+          }}
+        >
+          <SearchIcon />
+        </button>
+        <button
+          className={`icon-btn ${filtersOpen || activeFilterCount > 0 ? "active" : ""}`}
+          title="Filter"
+          onClick={() => {
+            setFiltersOpen((v) => !v)
+            setSearchOpen(false)
+          }}
+        >
+          <SlidersIcon />
+          {activeFilterCount > 0 && <span className="icon-btn-badge">{activeFilterCount}</span>}
+        </button>
       </div>
 
-      <input
-        className="search"
-        type="text"
-        placeholder="Search staged components…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      {searchOpen && (
+        <input
+          className="search"
+          type="text"
+          autoFocus
+          placeholder="Search staged components…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      )}
 
-      <div className="edit-components-filters">
-        {(["all", "free", "pro"] as const).map((f) => (
-          <button key={f} className={`cat-btn ${tierFilter === f ? "active" : ""}`} onClick={() => setTierFilter(f)}>
-            {f === "all" ? "Any tier" : f === "free" ? "Free" : "Pro"}
-          </button>
-        ))}
-      </div>
-      <div className="edit-components-filters">
-        {(["all", "new", "existing"] as const).map((f) => (
-          <button key={f} className={`cat-btn ${statusFilter === f ? "active" : ""}`} onClick={() => setStatusFilter(f)}>
-            {f === "all" ? "All" : f === "new" ? "New" : "Existing"}
-          </button>
-        ))}
-      </div>
+      {filtersOpen && (
+        <div className="filter-row-wrap">
+          <div className="filter-dropdown-backdrop" onClick={() => setFiltersOpen(false)} />
+          <div className="filter-dropdown">
+            <div className="filter-dropdown-label">Access</div>
+            <div className="filter-dropdown-chips">
+              {(["all", "free", "pro"] as const).map((f) => (
+                <button key={f} className={`cat-btn ${tierFilter === f ? "active" : ""}`} onClick={() => setTierFilter(f)}>
+                  {f === "all" ? "Any tier" : f === "free" ? "Free" : "Pro"}
+                </button>
+              ))}
+            </div>
+            <div className="filter-dropdown-label">Status</div>
+            <div className="filter-dropdown-chips">
+              {(["all", "new", "existing"] as const).map((f) => (
+                <button key={f} className={`cat-btn ${statusFilter === f ? "active" : ""}`} onClick={() => setStatusFilter(f)}>
+                  {f === "all" ? "All" : f === "new" ? "New" : "Existing"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="edit-components-list">
         {!rows ? (
@@ -177,6 +232,38 @@ export default function ReviewSync({ onBack, onImported }: { onBack: () => void;
           <button className="settings-upgrade-btn" onClick={() => handleImport("all")} disabled={busy}>
             {busy ? "Importing…" : `Import all (${rows.length})`}
           </button>
+        </div>
+      )}
+
+      {rows && rows.length > 0 && (
+        <div className="review-sync-actions">
+          {confirmReject ? (
+            <div className="edit-components-delete-confirm" style={{ flex: 1, justifyContent: "flex-end" }}>
+              <button className="edit-components-confirm-btn cancel" onClick={() => setConfirmReject(null)} disabled={busy}>
+                Cancel
+              </button>
+              <button
+                className="edit-components-confirm-btn danger"
+                onClick={() => handleReject(confirmReject === "all" ? "all" : Array.from(selected))}
+                disabled={busy}
+              >
+                {busy ? "Rejecting…" : confirmReject === "all" ? `Confirm reject all (${rows.length})` : `Confirm reject (${selected.size})`}
+              </button>
+            </div>
+          ) : (
+            <>
+              <button
+                className="settings-toggle"
+                onClick={() => setConfirmReject("selected")}
+                disabled={busy || selected.size === 0}
+              >
+                {`Reject selected (${selected.size})`}
+              </button>
+              <button className="settings-toggle danger" onClick={() => setConfirmReject("all")} disabled={busy}>
+                {`Reject all (${rows.length})`}
+              </button>
+            </>
+          )}
         </div>
       )}
       {status && <p className="settings-muted" style={{ padding: "0 18px" }}>{status}</p>}
