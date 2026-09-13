@@ -1,4 +1,4 @@
-project_id = "heedvrxwahsdznvyskot"
+project_id = "wxlroymyofhtibqwyxku"
 
 [functions.polar-checkout]
 # Called by the plugin with the user's own Supabase session token — the gateway checks it's a
@@ -12,4 +12,10 @@ verify_jwt = true
 [functions.polar-webhook]
 # Called by Polar directly, with Polar's own signature headers, not a Supabase JWT — verifying
 # Polar's signature happens inside the function itself (see index.ts).
+verify_jwt = false
+
+[functions.notify-discord-new-user]
+# Called by our own on_auth_user_created_notify_discord Postgres trigger via
+# supabase_functions.http_request, not by a client with a Supabase session — it sends a shared
+# X-Webhook-Secret header instead, checked inside the function itself (see index.ts).
 verify_jwt = false

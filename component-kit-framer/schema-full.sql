@@ -144,6 +144,42 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- Notifies Discord (via the notify-discord-new-user Edge Function) whenever someone signs up —
+-- a separate trigger from handle_new_user above so a Discord/network hiccup here can never
+-- affect the profile row every other part of the app depends on. The shared secret is read from
+-- Supabase Vault at request time, never stored in this file — run this once yourself in the SQL
+-- editor first (NOT part of this migration, do not commit the real value anywhere):
+--   select vault.create_secret('<same value passed to supabase secrets set NEW_USER_WEBHOOK_SECRET>', 'discord_new_user_webhook_secret');
+create extension if not exists pg_net;
+
+create or replace function public.notify_discord_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  webhook_secret text;
+begin
+  select decrypted_secret into webhook_secret
+    from vault.decrypted_secrets
+    where name = 'discord_new_user_webhook_secret';
+
+  if webhook_secret is not null then
+    perform net.http_post(
+      url := 'https://wxlroymyofhtibqwyxku.supabase.co/functions/v1/notify-discord-new-user',
+      headers := jsonb_build_object('Content-type', 'application/json', 'X-Webhook-Secret', webhook_secret),
+      body := jsonb_build_object('record', row_to_json(new))
+    );
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created_notify_discord on auth.users;
+create trigger on_auth_user_created_notify_discord
+  after insert on auth.users
+  for each row execute function public.notify_discord_new_user();
+
 -- ============================================================================
 -- boards + saved_items — user-organized collections of saved components
 -- ============================================================================
